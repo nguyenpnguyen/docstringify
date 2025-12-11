@@ -17,3 +17,6 @@ mlruns/.trash/
 
 # ChromaDB
 chroma_db
+.coverage
+.virtual_documents/
+*.sqlite3
