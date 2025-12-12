@@ -1,13 +1,14 @@
 from src.ingest import get_splitter, split_code, load_and_split_repository
+from pathlib import Path
 
 CODE_SAMPLE = """
 def hello_world():
     print('Hello, world!')
 """
 
-SAMPLE_REPO_PATH = "./tests/sample"
+SAMPLE_REPO_PATH = "tests/sample"
 
-def test_ingest():
+def test_split_code():
     splitter = get_splitter()
 
     # Test split_code
@@ -16,9 +17,18 @@ def test_ingest():
     assert len(docs) > 0, "No documents were created from the code sample."
 
     # Test load_and_split_repository
+
+def test_load_and_split_repository_empty():
     repo_path = SAMPLE_REPO_PATH
+
+    files = []
+    for file in Path(repo_path).rglob("*.py"):
+        files.append(file)
+
     docs = load_and_split_repository(repo_path)
     assert len(docs) > 0, "No documents were created from the sample repository."
-    for doc in docs:
+    for i, doc in enumerate(docs):
         assert "source" in doc.metadata, "Document metadata missing 'source' key."
         assert doc.metadata["source"].endswith(".py"), "Document source is not a Python file."
+        assert doc.metadata["source"] in [str(f) for f in files], "Document source not found in the repository files."
+

@@ -2,6 +2,7 @@ import os
 from typing import List, Optional
 from langchain_text_splitters import TextSplitter, PythonCodeTextSplitter
 from langchain_core.documents import Document
+from langchain_core.vectorstores import VectorStore
 
 CHUNK_SIZE = 1500 
 CHUNK_OVERLAP = 300 
@@ -58,3 +59,9 @@ def load_and_split_repository(repo_path: str) -> List[Document]:
 
     print(f"✅ processed {len(all_docs)} code chunks.")
     return all_docs
+
+def save_documents_to_vector_store(documents: List[Document], vector_store: VectorStore) -> List[str]:
+    """
+    Saves the list of Document objects to the provided vector store.
+    """
+    return vector_store.add_documents(documents)
