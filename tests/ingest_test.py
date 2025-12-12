@@ -5,7 +5,7 @@ def hello_world():
     print('Hello, world!')
 """
 
-SAMPLE_REPO_PATH = "./tests/gpt_oss_sample"
+SAMPLE_REPO_PATH = "./tests/sample"
 
 def test_ingest():
     splitter = get_splitter()

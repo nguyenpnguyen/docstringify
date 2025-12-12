@@ -1,5 +1,5 @@
 import logging
-from docstringify.loader import load_llm, load_embeddings, load_vector_store
+from src.loader import load_llm, load_embeddings, load_vector_store
 
 LLM_ID = "qwen3:4b-instruct"
 EMBED_ID = "qwen3-embedding:0.6b"
