@@ -1,11 +1,41 @@
-from langchain_community.retrievers import BM25Retriever
+from typing import List
+from langchain_chroma import Chroma
 from langchain_core.documents import Document
-from langchain_core.vectorstores import VectorStore
 
-def get_semantic_retriever(vector_store: VectorStore):
-    """Strategy A: Pure Semantic Search using ChromaDB."""
-    return vector_store.as_retriever(search_kwargs={"k": 4})
+# Constants for persistence paths
+DB_DIR = "./chroma_db"
 
-def get_bm25_retriever(documents: Document):
-    """Strategy B: BM25 Keyword Search."""
-    return BM25Retriever.from_documents([documents])
+def index_codebase(documents: List[Document], embedding_model):
+    """
+    Takes a list of Documents (from src/ingest.py) and persists them to ChromaDB.
+    """
+    if not documents:
+        print("No documents to index.")
+        return
+
+    print(f"Indexing {len(documents)} chunks to ChromaDB...")
+    
+    # Store in ChromaDB (Semantic)
+    Chroma.from_documents(
+        documents=documents,
+        embedding=embedding_model,
+        persist_directory=DB_DIR,
+        collection_name="docstringify_code"
+    )
+    print("Indexing Complete.")
+
+def get_semantic_retriever(embedding_model, k_semantic=4):
+    """
+    Returns a naive semantic retriever using only Vector Search (ChromaDB).
+    This serves as the baseline for performance comparison.
+    """
+    print("Initializing Naive Semantic Retriever...")
+    
+    vectorstore = Chroma(
+        persist_directory=DB_DIR,
+        embedding_function=embedding_model,
+        collection_name="docstringify_code"
+    )
+    
+    # We return the standard LangChain retriever interface
+    return vectorstore.as_retriever(search_kwargs={"k": k_semantic})
