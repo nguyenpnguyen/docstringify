@@ -1,4 +1,4 @@
-from src.ingest import get_splitter, split_code, load_and_split_repository
+from src.ingest import get_splitter, load_and_split_repository
 from pathlib import Path
 
 CODE_SAMPLE = """
@@ -8,15 +8,7 @@ def hello_world():
 
 SAMPLE_REPO_PATH = "tests/sample"
 
-def test_split_code():
-    splitter = get_splitter()
-
-    # Test split_code
-    code = CODE_SAMPLE
-    docs = split_code(code, splitter, metadata={})
-    assert len(docs) > 0, "No documents were created from the code sample."
-
-    # Test load_and_split_repository
+splitter = get_splitter()
 
 def test_load_and_split_repository_empty():
     repo_path = SAMPLE_REPO_PATH
