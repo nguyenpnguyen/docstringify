@@ -1,4 +1,4 @@
-from src.ingest import get_splitter, load_and_split_repository
+from src.code_splitter import get_splitter, load_and_split_repository
 from pathlib import Path
 
 CODE_SAMPLE = """
@@ -9,6 +9,7 @@ def hello_world():
 SAMPLE_REPO_PATH = "tests/sample"
 
 splitter = get_splitter()
+
 
 def test_load_and_split_repository_empty():
     repo_path = SAMPLE_REPO_PATH
@@ -23,4 +24,3 @@ def test_load_and_split_repository_empty():
         assert "source" in doc.metadata, "Document metadata missing 'source' key."
         assert doc.metadata["source"].endswith(".py"), "Document source is not a Python file."
         assert doc.metadata["source"] in [str(f) for f in files], "Document source not found in the repository files."
-
