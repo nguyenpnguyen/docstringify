@@ -1,0 +1,202 @@
+[
+  {
+    "source_code": "@property\ndef is_counterclockwise(self):\n    ret = c_byte()\n    if not capi.cs_is_ccw(self.ptr, byref(ret)):\n        raise GEOSException('Error encountered in GEOS C function \"%s\".' % capi.cs_is_ccw.func_name)\n    return ret.value == 1",
+    "docstring": "Return whether this coordinate sequence is counterclockwise."
+  },
+  {
+    "source_code": "def from_settings(settings):\n    pass",
+    "docstring": "Return an instance of the class for the given settings"
+  },
+  {
+    "source_code": "def _matvec(self, x):\n    x = x.reshape(self.shape[0], -1)\n    result_dtype = np.promote_types(x.dtype, self.dtype)\n    kx = np.zeros_like(x, dtype=result_dtype)\n    d1 = self._diag1\n    d0 = self._diag0\n    kx[0, :] = d0[0] * x[0, :] + d1[0] * x[1, :]\n    kx[-1, :] = d1[-1] * x[-2, :] + d0[-1] * x[-1, :]\n    kx[1:-1, :] = d1[:-1, None] * x[:-2, :] + d0[1:-1, None] * x[1:-1, :] + d1[1:, None] * x[2:, :]\n    return kx",
+    "docstring": "Construct matrix-free callable banded-matrix-vector multiplication by the Mikota stiffness matrix without constructing or storing the matrix itself using the knowledge of its entries and the 3-diagonal format."
+  },
+  {
+    "source_code": "def hilbert(n):\n    values = 1.0 / (1.0 + np.arange(2 * n - 1))\n    h = hankel(values[:n], r=values[n - 1:])\n    return h",
+    "docstring": "Create a Hilbert matrix of order . Returns the by array with entries . Parameters ---------- n : int The size of the array to create. Returns ------- h : (n, n) ndarray The Hilbert matrix. See Also -------- invhilbert : Compute the inverse of a Hilbert matrix. Notes ----- .. versionadded:: 0.10.0 Examples -------- >>> from scipy.linalg import hilbert >>> hilbert(3) array([[ 1. , 0.5 , 0.33333333], [ 0.5 , 0.33333333, 0.25 ], [ 0.33333333, 0.25 , 0.2 ]])"
+  },
+  {
+    "source_code": "class RegressionOutput(ExportOutput):\n\n    def __init__(self, value):\n        if not (isinstance(value, tensor.Tensor) and value.dtype.is_floating):\n            raise ValueError('Regression output value must be a float32 Tensor; got {}'.format(value))\n        self._value = value\n\n    @property\n    def value(self):\n        return self._value\n\n    def as_signature_def(self, receiver_tensors):\n        if len(receiver_tensors) != 1:\n            raise ValueError(f'Regression signatures can only accept a single tensor input of type tf.string. Please check to make sure that you have structured the serving_input_receiver_fn so that it creates a single string placeholder. If your model function expects multiple inputs, then use `tf.io.parse_example()` to parse the string into multiple tensors.\\n Received: {receiver_tensors}')\n        (_, examples), = receiver_tensors.items()\n        if dtypes.as_dtype(examples.dtype) != dtypes.string:\n            raise ValueError(f'Regression signatures can only accept a single tensor input of type tf.string. Please check to make sure that you have structured the serving_input_receiver_fn so that it creates a single string placeholder. If your model function expects multiple inputs, then use `tf.io.parse_example()` to parse the string into multiple tensors.\\n Received: {receiver_tensors}')\n        return signature_def_utils.regression_signature_def(examples, self.value)",
+    "docstring": "Represents the output of a regression head."
+  },
+  {
+    "source_code": "def _unregister_deepcopy_hook(self, f):\n    assert callable(f), 'deepcopy hook must be a callable.'\n    self._deepcopy_hooks.remove(f)",
+    "docstring": "Takes a callable which was previously registered to be called after deepcopy. This function will unregister that callable so it is no longer invoked on deepcopy."
+  },
+  {
+    "source_code": "def is_embedding_node(node: Node) -> bool:\n    if node.op == 'call_module':\n        submodule = self.graph_module\n        for atom in str(node.target).split('.'):\n            if not hasattr(submodule, atom):\n                raise RuntimeError(f'Module {submodule} has no attribute {atom}')\n            submodule = getattr(submodule, atom)\n            if 'Embedding' in str(submodule):\n                return True\n    return False",
+    "docstring": "Check if a node is an embedding node"
+  },
+  {
+    "source_code": "def _wait_for_computation_stream(computation_stream: torch.Stream, unshard_stream: torch.Stream, pre_unshard_stream: torch.Stream):\n    if torch.distributed._functional_collectives.is_torchdynamo_compiling():\n        return\n    unshard_stream.wait_stream(computation_stream)\n    pre_unshard_stream.wait_stream(computation_stream)",
+    "docstring": "Has the unshard and pre-unshard streams wait for the computation stream. For example, this should be called in the FSDP root's pre-forward to respect optimizer step computation."
+  },
+  {
+    "source_code": "def _is_compiled() -> bool:\n    return hasattr(torch._C, '_cuda_getDeviceCount')",
+    "docstring": "Return true if compile with CUDA support."
+  },
+  {
+    "source_code": "def get_bbox_to_anchor(self):\n    if self._bbox_to_anchor is None:\n        return self.axes.bbox\n    else:\n        transform = self._bbox_to_anchor_transform\n        if transform is None:\n            return self._bbox_to_anchor\n        else:\n            return TransformedBbox(self._bbox_to_anchor, transform)",
+    "docstring": "Return the bbox that the box is anchored to."
+  },
+  {
+    "source_code": "@no_type_check\ndef _record_memory_stats(self, fn_name: str) -> None:\n    memory_allocated: float = torch.cuda.memory_allocated() / BYTES_PER_MB\n    memory_reserved: float = torch.cuda.memory_reserved() / BYTES_PER_MB\n    memory_active: float = torch.cuda.memory_stats().get('active_bytes.all.current', 0) / BYTES_PER_MB\n    self.memories_allocated[self._op_index] = (fn_name, memory_allocated)\n    self.memories_reserved[self._op_index] = (fn_name, memory_reserved)\n    self.memories_active[self._op_index] = (fn_name, memory_active)\n    self._op_index += 1",
+    "docstring": "Record current memory allocated, current memory active and current memory reserved. The memory stats dict is indexed with ``."
+  },
+  {
+    "source_code": "def __eq__(self, other):\n    return isinstance(other, OGRGeometry) and self.equals(other)",
+    "docstring": "Is this Geometry equal to the other?"
+  },
+  {
+    "source_code": "def named_parameters(self, prefix: str='', recurse: bool=True, remove_duplicate: bool=True) -> Iterator[tuple[str, Parameter]]:\n    gen = self._named_members(lambda module: module._parameters.items(), prefix=prefix, recurse=recurse, remove_duplicate=remove_duplicate)\n    yield from gen",
+    "docstring": "Return an iterator over module parameters, yielding both the name of the parameter as well as the parameter itself. Args: prefix (str): prefix to prepend to all parameter names. recurse (bool): if True, then yields parameters of this module and all submodules. Otherwise, yields only parameters that are direct members of this module. remove_duplicate (bool, optional): whether to remove the duplicated parameters in the result. Defaults to True. Yields: (str, Parameter): Tuple containing the name and parameter Example:: >>> # xdoctest: +SKIP(\"undefined vars\") >>> for name, param in self.named_parameters(): >>> if name in ['bias']: >>> print(param.size())"
+  },
+  {
+    "source_code": "def solve_bdf_system(fun, t_new, y_predict, c, psi, LU, solve_lu, scale, tol):\n    d = 0\n    y = y_predict.copy()\n    dy_norm_old = None\n    converged = False\n    for k in range(NEWTON_MAXITER):\n        f = fun(t_new, y)\n        if not np.all(np.isfinite(f)):\n            break\n        dy = solve_lu(LU, c * f - psi - d)\n        dy_norm = norm(dy / scale)\n        if dy_norm_old is None:\n            rate = None\n        else:\n            rate = dy_norm / dy_norm_old\n        if rate is not None and (rate >= 1 or rate ** (NEWTON_MAXITER - k) / (1 - rate) * dy_norm > tol):\n            break\n        y += dy\n        d += dy\n        if dy_norm == 0 or (rate is not None and rate / (1 - rate) * dy_norm < tol):\n            converged = True\n            break\n        dy_norm_old = dy_norm\n    return (converged, k + 1, y, d)",
+    "docstring": "Solve the algebraic system resulting from BDF method."
+  },
+  {
+    "source_code": "def expired(self):\n    if self.timer.expired():\n        raise LockTimeout('Timeout acquiring lock for %(session_id)s' % vars(self))\n    return False",
+    "docstring": "Check whether the lock checker has expired."
+  },
+  {
+    "source_code": "class SimplifyIndexing(V.WrapperHandler):\n\n    def __init__(self, inner, var_ranges: VarRanges) -> None:\n        super().__init__(inner)\n        self.name = 'SimplifyIndexing'\n        self._simplify: Callable[[Expr], Expr] = lambda index: V.graph.sizevars.simplify_with_ranges(index, var_ranges)\n\n    def load(self, name: str, index: sympy.Expr):\n        return self._inner.load(name, self._simplify(index))\n\n    def store(self, name, index, value, mode=None):\n        return self._inner.store(name, self._simplify(index), value, mode=mode)\n\n    def store_reduction(self, name, index, value):\n        return self._inner.store_reduction(name, self._simplify(index), value)\n\n    def index_expr(self, index, dtype):\n        return self._inner.index_expr(self._simplify(index), dtype)\n\n    def check_bounds(self, index, size, lower, upper):\n        return self._inner.check_bounds(self._simplify(index), size, lower, upper)",
+    "docstring": "A wrapper around .virtualize.ops that uses var range information to simplify ModularIndexing/FloorDiv."
+  },
+  {
+    "source_code": "@_docstring.interpd\ndef set_boxstyle(self, boxstyle=None, **kwargs):\n    if boxstyle is None:\n        return BoxStyle.pprint_styles()\n    self._bbox_transmuter = BoxStyle(boxstyle, **kwargs) if isinstance(boxstyle, str) else boxstyle\n    self.stale = True",
+    "docstring": "Set the box style, possibly with further attributes. Attributes from the previous box style are not reused. Without argument (or with `~matplotlib.patches.BoxStyle.BoxStyle.BoxStyle` object, as documented in that class. The following box styles are available: %(BoxStyle:table_and_accepts)s **kwargs Additional attributes for the box style. See the table above for supported parameters. Examples -------- :: set_boxstyle(\"Round,pad=0.2\") set_boxstyle(\"round\", pad=0.2)"
+  },
+  {
+    "source_code": "def validate_ui_locales_supported(self):\n    validate_array_value(self, 'ui_locales_supported')",
+    "docstring": "OPTIONAL. Languages and scripts supported for the user interface, represented as a JSON array of language tag values from BCP 47 [RFC5646]. If omitted, the set of supported languages and scripts is unspecified."
+  },
+  {
+    "source_code": "def _BatchGatherGrad(params_shape, values, indices, batch_dims, gather_dim_size):\n    indices_size = array_ops.expand_dims(array_ops.size(indices), 0)\n    if batch_dims:\n        values_shape = array_ops.shape(values)\n        outer_shape = values_shape[:batch_dims]\n        inner_shape = values_shape[batch_dims:][1:]\n        batch_size = gen_math_ops.prod(outer_shape, [0], False)\n        flat_values_shape = array_ops.concat([[-1], inner_shape], 0)\n        gather_dim_size *= batch_size\n        indices = _GetBatchIndices(params_shape, indices, batch_dims)\n        values = array_ops.reshape(_IndexedSlicesToTensorNoWarning(values), flat_values_shape)\n    indices = array_ops.reshape(indices, indices_size)\n    params_grad = math_ops.unsorted_segment_sum(values, indices, gather_dim_size)\n    if batch_dims:\n        params_grad = array_ops.reshape(params_grad, array_ops.concat([outer_shape, flat_values_shape], 0))\n    return params_grad",
+    "docstring": "Returns the gradient of GatherV2 with batch dimensions."
+  },
+  {
+    "source_code": "class MutationAwareDict(py_collections.OrderedDict):\n\n    def __init__(self, *args, **kwargs):\n        super().__init__(*args, **kwargs)\n        self._mutated = True\n\n    def pop(self, key, default=None):\n        self._mutated = True\n        return super().pop(key, default)\n\n    def __setitem__(self, key, value):\n        self._mutated = True\n        return super().__setitem__(key, value)\n\n    def __delitem__(self, key):\n        self._mutated = True\n        return super().__delitem__(key)\n\n    def clear(self):\n        self._mutated = True\n        return super().clear()\n\n    @property\n    def mutated(self):\n        return self._mutated\n\n    @mutated.setter\n    def mutated(self, value):\n        self._mutated = value",
+    "docstring": "A dict with a mutation flag."
+  },
+  {
+    "source_code": "@property\ndef rotation(self) -> So3 | So2:\n    return self._dst_from_src.rotation",
+    "docstring": "Rotation part of the pose."
+  },
+  {
+    "source_code": "@tf_export('hessians', v1=[])\ndef HessiansV2(ys, xs, gate_gradients=False, aggregation_method=None, name='hessians'):\n    return hessians(ys, xs, name=name, colocate_gradients_with_ops=True, gate_gradients=gate_gradients, aggregation_method=aggregation_method)",
+    "docstring": "Constructs the Hessian of sum of with respect to in . adds ops to the graph to output the Hessian matrix of with respect to . It returns a list of of length where each tensor is the Hessian of . The Hessian is a matrix of second-order partial derivatives of a scalar tensor (see for more details). Args: ys: A or list of tensors to be differentiated. xs: A or list of tensors to be used for differentiation. gate_gradients: See documentation for details. aggregation_method: See documentation for details. name: Optional name to use for grouping all the gradient ops together. defaults to 'hessians'. Returns: A list of Hessian matrices of for each in . Raises: LookupError: if one of the operations between and does not have a registered gradient function."
+  },
+  {
+    "source_code": "class PostgresOperatorLookup(Lookup):\n    postgres_operator = None\n\n    def as_postgresql(self, compiler, connection):\n        lhs, lhs_params = self.process_lhs(compiler, connection)\n        rhs, rhs_params = self.process_rhs(compiler, connection)\n        params = tuple(lhs_params) + tuple(rhs_params)\n        return ('%s %s %s' % (lhs, self.postgres_operator, rhs), params)",
+    "docstring": "Lookup defined by operators on PostgreSQL."
+  },
+  {
+    "source_code": "def get_metadata_routing(self):\n    router = MetadataRouter(owner=self.__class__.__name__).add_self_request(self).add(scorer=self.scoring, method_mapping=MethodMapping().add(caller='fit', callee='score')).add(splitter=self.cv, method_mapping=MethodMapping().add(caller='fit', callee='split'))\n    return router",
+    "docstring": "Get metadata routing of this object. Please check :ref: on how the routing mechanism works. .. versionadded:: 1.5 Returns ------- routing : MetadataRouter A :class: encapsulating routing information."
+  },
+  {
+    "source_code": "def is_registered(self, prefix):\n    return self._resolve_prefix(prefix) is not None",
+    "docstring": "Test if a command prefix or its alias is has a registered handler. Args: prefix: A prefix or its alias, as a str. Returns: True iff a handler is registered for prefix."
+  },
+  {
+    "source_code": "def __dir__(self) -> List[str]:\n    self._load()\n    return dir(self.module)",
+    "docstring": "Load the module (if not already loaded) and returns the list of attributes of the module. This method is called when the built-in dir() function is used on the LazyLoader instance. It ensures that the module is loaded and then returns the list of attributes of the module. Returns: list: The list of attributes of the loaded module."
+  },
+  {
+    "source_code": "def require_length_match(data, index: Index) -> None:\n    if len(data) != len(index):\n        raise ValueError(f'Length of values ({len(data)}) does not match length of index ({len(index)})')",
+    "docstring": "Check the length of data matches the length of the index."
+  },
+  {
+    "source_code": "def render_pep440_post_branch(pieces):\n    if pieces['closest-tag']:\n        rendered = pieces['closest-tag']\n        if pieces['distance'] or pieces['dirty']:\n            rendered += f'.post{pieces['distance']}'\n            if pieces['branch'] != 'master':\n                rendered += '.dev0'\n            rendered += plus_or_dot(pieces)\n            rendered += f'g{pieces['short']}'\n            if pieces['dirty']:\n                rendered += '.dirty'\n    else:\n        rendered = f'0.post{pieces['distance']}'\n        if pieces['branch'] != 'master':\n            rendered += '.dev0'\n        rendered += f'+g{pieces['short']}'\n        if pieces['dirty']:\n            rendered += '.dirty'\n    return rendered",
+    "docstring": "TAG[.postDISTANCE[.dev0]+gHEX[.dirty]] . The \".dev0\" means not master branch. Exceptions: 1: no tags. 0.postDISTANCE[.dev0]+gHEX[.dirty]"
+  },
+  {
+    "source_code": "def get_debug_quantized_model(self) -> bytes:\n    return self._get_quantized_model(is_debug=True)",
+    "docstring": "Returns an instrumented quantized model. Convert the quantized model with the initialized converter and return bytes for model. The model will be instrumented with numeric verification operations and should only be used for debugging. Returns: Model bytes corresponding to the model. Raises: ValueError: if converter is not passed to the debugger."
+  },
+  {
+    "source_code": "def _format_native_types(self, *, na_rep: str | float='NaT', date_format=None, **kwargs) -> npt.NDArray[np.object_]:\n    return libperiod.period_array_strftime(self.asi8, self.dtype._dtype_code, na_rep, date_format)",
+    "docstring": "actually format my specific types"
+  },
+  {
+    "source_code": "def _validate_dialect(dialect: csv.Dialect) -> None:\n    for param in MANDATORY_DIALECT_ATTRS:\n        if not hasattr(dialect, param):\n            raise ValueError(f'Invalid dialect {dialect} provided')",
+    "docstring": "Validate csv dialect instance. Raises ------ ValueError If incorrect dialect is provided."
+  },
+  {
+    "source_code": "def adjoint(self) -> Tensor:\n    rt = self.matrix()\n    rt[..., 0:2, 2] = stack((self.t.data[..., 1], -self.t.data[..., 0]), -1)\n    return rt",
+    "docstring": "Return the adjoint matrix of shape :math:. Example: >>> s = Se2.identity() >>> s.adjoint() tensor([[1., -0., 0.], [0., 1., -0.], [0., 0., 1.]], grad_fn=)"
+  },
+  {
+    "source_code": "def __init__(self, compression_type=None, flush_mode=None, input_buffer_size=None, output_buffer_size=None, window_bits=None, compression_level=None, compression_method=None, mem_level=None, compression_strategy=None):\n    self.get_compression_type_string(compression_type)\n    self.compression_type = compression_type\n    self.flush_mode = flush_mode\n    self.input_buffer_size = input_buffer_size\n    self.output_buffer_size = output_buffer_size\n    self.window_bits = window_bits\n    self.compression_level = compression_level\n    self.compression_method = compression_method\n    self.mem_level = mem_level\n    self.compression_strategy = compression_strategy",
+    "docstring": "Creates a instance. Options only effect TFRecordWriter when compression_type is not . Documentation, details, and defaults can be found in []( and in the [zlib manual]( Leaving an option as allows C++ to set a reasonable default. Args: compression_type: , , or (no compression). flush_mode: flush mode or , Default: Z_NO_FLUSH. input_buffer_size: int or . output_buffer_size: int or . window_bits: int or . compression_level: 0 to 9, or . compression_method: compression method or . mem_level: 1 to 9, or . compression_strategy: strategy or . Default: Z_DEFAULT_STRATEGY. Returns: A object. Raises: ValueError: If compression_type is invalid."
+  },
+  {
+    "source_code": "def peek_top_obj(self) -> T:\n    return self._stack[-1].obj",
+    "docstring": "Return the most recent stored object."
+  },
+  {
+    "source_code": "@property\ndef inner_shape(self):\n    return self._inner_shape",
+    "docstring": "The inner dimension sizes for this shape. Returns: A 1-D integer ."
+  },
+  {
+    "source_code": "def _nested_offsets(self, width, dodge):\n    offsets = None\n    if 'hue' in self.variables and self._hue_map.levels is not None:\n        n_levels = len(self._hue_map.levels)\n        if dodge:\n            each_width = width / n_levels\n            offsets = np.linspace(0, width - each_width, n_levels)\n            offsets -= offsets.mean()\n        else:\n            offsets = np.zeros(n_levels)\n    return offsets",
+    "docstring": "Return offsets for each hue level for dodged plots."
+  },
+  {
+    "source_code": "def validate_token_endpoint_auth_methods_supported(self):\n    validate_array_value(self, 'token_endpoint_auth_methods_supported')",
+    "docstring": "OPTIONAL. JSON array containing a list of client authentication methods supported by this token endpoint. Client authentication method values are used in the \"token_endpoint_auth_method\" parameter defined in Section 2 of [RFC7591]. If omitted, the default is \"client_secret_basic\" -- the HTTP Basic Authentication Scheme specified in Section 2.3.1 of OAuth 2.0 [RFC6749]."
+  },
+  {
+    "source_code": "def _ifft(self, x):\n    x_complex = _to_complex(x)\n    return _IFFT_OP[self.block_depth](x_complex)",
+    "docstring": "IFFT along the last self.block_depth dimensions of x. Args: x: with floating or complex dtype. Should be in the form returned by self._vectorize_then_blockify. Returns: with ."
+  },
+  {
+    "source_code": "def abort_collective_ops(self, code, message):\n    self.ensure_initialized()\n    pywrap_tfe.TFE_AbortCollectiveOps(self._handle, code, message)",
+    "docstring": "Abort the collective ops. This is intended to be used when a peer failure is detected, which allows the user to handle the case instead of hanging. This aborts all on-going collectives. After all subsequent collectives error immediately, and you need to reset_context() to use collectives again. Args: code: a error code. message: a string. The error message."
+  },
+  {
+    "source_code": "def complex_double(self):\n    _warn_typed_storage_removal()\n    return self._to(torch.cdouble)",
+    "docstring": "Casts this storage to complex double type."
+  },
+  {
+    "source_code": "def memory_efficient_fusion(fn: Union[Callable, nn.Module], **kwargs):\n    config = {'fw_compiler': ts_compile, 'bw_compiler': ts_compile, 'partition_fn': min_cut_rematerialization_partition, 'decompositions': default_decompositions}\n    config.update(kwargs)\n    if isinstance(fn, torch.nn.Module):\n        return aot_module(fn, **config)\n    else:\n        return aot_function(fn, **config)",
+    "docstring": "Wrapper function over :func: and :func: to perform memory efficient fusion. It uses the :func: partitioner to perform efficient recomputation. It uses NVFuser to compile the generated forward and backward graphs. .. warning:: This API is experimental and likely to change. Args: fn (Union[Callable, nn.Module]): A Python function or a `fn`, but whose forward and backward graphs have gone through recomputation optimizations, and the graphs have been compiled with nvfuser."
+  },
+  {
+    "source_code": "@register.tag('if')\ndef do_if(parser, token):\n    bits = token.split_contents()[1:]\n    condition = TemplateIfParser(parser, bits).parse()\n    nodelist = parser.parse(('elif', 'else', 'endif'))\n    conditions_nodelists = [(condition, nodelist)]\n    token = parser.next_token()\n    while token.contents.startswith('elif'):\n        bits = token.split_contents()[1:]\n        condition = TemplateIfParser(parser, bits).parse()\n        nodelist = parser.parse(('elif', 'else', 'endif'))\n        conditions_nodelists.append((condition, nodelist))\n        token = parser.next_token()\n    if token.contents == 'else':\n        nodelist = parser.parse(('endif',))\n        conditions_nodelists.append((None, nodelist))\n        token = parser.next_token()\n    if token.contents != 'endif':\n        raise TemplateSyntaxError('Malformed template tag at line {}: \"{}\"'.format(token.lineno, token.contents))\n    return IfNode(conditions_nodelists)",
+    "docstring": "Evaluate a variable, and if that variable is \"true\" (i.e., exists, is not empty, and is not a false boolean value), output the contents of the block: :: {% if athlete_list %} Number of athletes: {{ athlete_list|count }} {% elif athlete_in_locker_room_list %} Athletes should be out of the locker room soon! {% else %} No athletes. {% endif %} In the above, if ``. Operator precedence follows Python."
+  },
+  {
+    "source_code": "def auth_name(self, target):\n    return capi.get_auth_name(self.ptr, target if target is None else force_bytes(target))",
+    "docstring": "Return the authority name for the given string target node."
+  },
+  {
+    "source_code": "def readline(self, size=None):\n    chunks = []\n    while size is None or size > 0:\n        chunksize = self.bufsize\n        if size is not None and size < self.bufsize:\n            chunksize = size\n        data = self.read(chunksize)\n        if not data:\n            break\n        pos = data.find(b'\\n') + 1\n        if pos:\n            chunks.append(data[:pos])\n            remainder = data[pos:]\n            self.buffer += remainder\n            self.bytes_read -= len(remainder)\n            break\n        else:\n            chunks.append(data)\n    return b''.join(chunks)",
+    "docstring": "Read a line from the request body and return it."
+  },
+  {
+    "source_code": "def _get_lowers_and_uppers(self):\n    lowers = self._levels[:-1]\n    if self.zmin == lowers[0]:\n        lowers = lowers.copy()\n        if self.logscale:\n            lowers[0] = 0.99 * self.zmin\n        else:\n            lowers[0] -= 1\n    uppers = self._levels[1:]\n    return (lowers, uppers)",
+    "docstring": "Return `` for filled contours."
+  },
+  {
+    "source_code": "def get_under(self):\n    if not self._isinit:\n        self._init()\n    return np.array(self._lut[self._i_under])",
+    "docstring": "Get the color for low out-of-range values."
+  },
+  {
+    "source_code": "def can_filter(self):\n    return not self.is_sliced",
+    "docstring": "Return True if adding filters to this instance is still possible. Typically, this means no limits or offsets have been put on the results."
+  },
+  {
+    "source_code": "def read(self, index, name=None):\n    del name\n    if isinstance(index, ops.EagerTensor):\n        index = index.numpy()\n    if index < 0:\n        raise errors_impl.OutOfRangeError(None, None, 'Reading from negative indices (index %d) is not allowed.' % index)\n    if index >= len(self._tensor_array):\n        raise errors_impl.OutOfRangeError(None, None, 'Tried to read from index %d but array size is: %d ' % (index, len(self._tensor_array)))\n    tensor = self._tensor_array[index]\n    if tensor is None:\n        if index in self._previously_read_indices:\n            raise errors_impl.InvalidArgumentError(None, None, 'Could not read index %d twice because it was cleared after a previous read (perhaps try setting clear_after_read = false?)' % index)\n        else:\n            tensor = self._maybe_zero(index)\n    if self._clear_after_read:\n        self._tensor_array[index] = None\n        self._previously_read_indices.append(index)\n    return tensor",
+    "docstring": "See TensorArray."
+  },
+  {
+    "source_code": "def floor_to_int(self, x: T, dtype: torch.dtype) -> T:\n    raise NotImplementedError",
+    "docstring": "Convert x to dtype with ceiling semantics. See also trunc_to_int."
+  },
+  {
+    "source_code": "def create_dummy_tensor(spec):\n    if hasattr(spec, '_create_empty_value'):\n        return spec._create_empty_value()\n    if isinstance(spec, ragged_tensor.RaggedTensorSpec):\n        feature_shape = spec._shape[:1].concatenate(spec._shape[1 + spec._ragged_rank:])\n        feature_type = spec._dtype\n    else:\n        feature_shape = spec.shape\n        feature_type = spec.dtype\n    dims = [dim if dim is not None else 0 for dim in feature_shape.as_list()] if feature_shape else []\n    if dims and (isinstance(spec, ragged_tensor.RaggedTensorSpec) or feature_shape.is_fully_defined()):\n        dims[0] = tensor_shape.Dimension(0)\n    if isinstance(spec, sparse_tensor.SparseTensorSpec):\n        return sparse_tensor.SparseTensor(values=array_ops.zeros(0, feature_type), indices=array_ops.zeros((0, len(dims)), dtypes.int64), dense_shape=dims)\n    dummy_tensor = array_ops.zeros(tensor_shape.TensorShape(dims), feature_type)\n    if isinstance(spec, ragged_tensor.RaggedTensorSpec):\n        row_splits = array_ops.zeros(1, spec._row_splits_dtype)\n        dummy_tensor = ragged_tensor.RaggedTensor.from_nested_row_splits(dummy_tensor, (row_splits,) * spec._ragged_rank, validate=False)\n    return dummy_tensor",
+    "docstring": "Create a dummy tensor with possible batch dimensions set to 0."
+  }
+]
