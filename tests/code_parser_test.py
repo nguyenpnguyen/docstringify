@@ -1,4 +1,4 @@
-from src.code_splitter import get_splitter, load_and_split_repository
+from src.code_parser import get_splitter, load_and_split_repository
 from pathlib import Path
 
 CODE_SAMPLE = """
