@@ -9,7 +9,6 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "accelerate>=1.11.0",
-    "langchain-chroma",
     "langchain>=1.0.0",
     "langchain-ollama",
     "weave>=0.52.0",

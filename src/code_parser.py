@@ -1,8 +1,12 @@
 import os
 import ast
+import logging
+
 from typing import List, Optional, Set
 from langchain_text_splitters import TextSplitter, PythonCodeTextSplitter
 from langchain_core.documents import Document
+
+logger = logging.getLogger(__name__)
 
 
 class CodeStructureVisitor(ast.NodeVisitor):
@@ -139,7 +143,7 @@ def load_and_split_repository(repo_path: str) -> List[Document]:
     final_docs = []
     splitter = get_splitter()
 
-    print(f"Scanning repository: {repo_path}...")
+    logger.debug(f"Scanning repository: {repo_path}...")
 
     for root, _, files in os.walk(repo_path):
         for file in files:
@@ -172,7 +176,8 @@ def load_and_split_repository(repo_path: str) -> List[Document]:
                         final_docs.extend(split_docs)
 
                 except Exception as e:
-                    print(f"Error processing {full_path}: {e}")
+                    logger.error(f"Error processing {full_path}: {e}")
 
-    print(f"processed {len(final_docs)} code chunks.")
+    logger.debug(f"processed {len(final_docs)} code chunks.")
+
     return final_docs
