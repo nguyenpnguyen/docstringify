@@ -19,11 +19,12 @@ wheels/
 # MLFlow
 mlruns/.trash/
 
-# ChromaDB
+# DB
 chroma_db
 .coverage
 .virtual_documents/
 *.sqlite3
+*.db
 
 # Distribution / packaging
 .Python
