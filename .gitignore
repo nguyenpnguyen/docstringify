@@ -13,6 +13,9 @@ wheels/
 # Virtual environments
 .venv
 
+# Env var
+.env
+
 # Notebooks
 .ipynb_checkpoints/
 
