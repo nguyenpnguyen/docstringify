@@ -6,7 +6,18 @@ from typing import List, Optional, Set
 from langchain_text_splitters import TextSplitter, PythonCodeTextSplitter
 from langchain_core.documents import Document
 
+from pydantic import BaseModel
+
 logger = logging.getLogger(__name__)
+
+
+class CodeChunkMetadata(BaseModel):
+    source: str
+    name: str
+    type: str  # e.g., "function", "class_definition", "method"
+    parent_class: Optional[str] = None  # For methods, the class they belong
+    line_number: Optional[int] = None
+    docstring: Optional[str] = None
 
 
 class CodeStructureVisitor(ast.NodeVisitor):
@@ -46,16 +57,18 @@ class CodeStructureVisitor(ast.NodeVisitor):
         # Determine chunk type (method vs function) based on context
         actual_type = "method" if self.current_class else type_name
 
+        metadata = CodeChunkMetadata(
+            source=self.file_path,
+            name=node.name,
+            type=actual_type,
+            parent_class=self.current_class,
+            line_number=node.lineno,
+            docstring=docstring
+        )
+
         self.raw_documents.append(Document(
             page_content=content,
-            metadata={
-                "source": self.file_path,
-                "name": node.name,
-                "type": actual_type,
-                "parent_class": self.current_class,  # Context awareness
-                "start_line": node.lineno,
-                "docstring": docstring
-            }
+            metadata=metadata.model_dump()
         ))
 
     def visit_ClassDef(self, node):
@@ -103,15 +116,17 @@ class CodeStructureVisitor(ast.NodeVisitor):
 
         docstring = ast.get_docstring(node)
 
+        metadata = CodeChunkMetadata(
+            source=self.file_path,
+            name=node.name,
+            type="class_definition",
+            line_number=node.lineno,
+            docstring=docstring
+        )
+
         self.raw_documents.append(Document(
             page_content=class_header,
-            metadata={
-                "source": self.file_path,
-                "name": node.name,
-                "type": "class_definition",
-                "start_line": node.lineno,
-                "docstring": docstring
-            }
+            metadata=metadata.model_dump()
         ))
 
         # 3. Manage Context and Recurse
