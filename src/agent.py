@@ -1,9 +1,6 @@
-import sqlite3
-import sqlite_vec
 from typing import List
 from dataclasses import dataclass
 
-from langchain_community.vectorstores.sqlitevec import SQLiteVec
 from pydantic import BaseModel
 
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -23,21 +20,22 @@ from src.retrievers import retrieve_relevant_docs
 # --- Configuration ---
 LLM_ID = "qwen3:4b-instruct"
 EMBED_ID = "qwen3-embedding:0.6b"
-TABLE = "eval_table"
-DB_FILE = "eval_vec.db"
+COLLECTION = "eval_table"
+
+config = {
+    "llm_id": "qwen3:4b-instruct",
+    "embed_id": "qwen3-embedding:0.6b",
+    "chroma_collection": "eval_table",
+}
 
 # --- Initialization ---
 # Load LLM and Embeddings
 llm: BaseChatModel = load_llm(model=LLM_ID, temperature=0.2, num_ctx=8192)
 embeddings: Embeddings = load_embeddings(model=EMBED_ID)
 
-db = SQLiteVec.create_connection(db_file=DB_FILE)
-
 vector_store: VectorStore = load_vector_store(
+    collection_name=COLLECTION,
     embedding=embeddings,
-    connection=db,
-    table=TABLE,
-    db_file=DB_FILE
 )
 
 
