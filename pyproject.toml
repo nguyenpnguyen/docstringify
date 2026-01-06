@@ -25,6 +25,7 @@ dependencies = [
     "langchain-community>=0.4.1",
     "langchain-chroma>=1.1.0",
     "wandb>=0.23.1",
+    "ragas>=0.4.2",
 ]
 
 [tool.uv.sources]
@@ -50,8 +51,9 @@ dev = [
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
     "pandas-stubs~=2.3.3",
-    "langchain-google-vertexai>=3.2.0",
     "ragas>=0.4.1",
+    "google-auth>=2.45.0",
+    "google-genai>=1.56.0",
 ]
 
 [build-system]

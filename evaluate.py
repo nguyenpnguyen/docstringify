@@ -1,66 +1,61 @@
 import weave
 import os
 import json
-from typing import List
+from typing import List, Annotated
+
+import typer
 
 # Ragas & LangChain
 from langchain_core.documents import Document
 from datasets import Dataset
 from ragas import evaluate
-from ragas.metrics import (
-    faithfulness,
-    answer_correctness,
-    answer_similarity
-)
+from ragas.metrics import Faithfulness, AnswerCorrectness
 
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from ragas.llms import llm_factory
+from ragas.embeddings import GoogleEmbeddings
 
-# Your custom modules
+from google import genai
+
 from agent import agent
 from retrievers import index_codebase
 
-# --- Configuration ---
-PROJECT_ID = "docstringify"
-REGION = "asia-southeast1"
-
+client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY"))
 
 def get_google_metrics():
     """
-    Configures RAGAS metrics to use Gemini 2.5 Flash via Vertex AI.
+    Configures RAGAS metrics to use Gemini 2.5 Flash with the Gemini API.
     """
 
-    vertex_llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
-        temperature=0,
+    llm = llm_factory(
+        "gemini-2.5-flash",
+        provider="google",
+        client=client
     )
 
-    vertex_embeddings = GoogleGenerativeAIEmbeddings(
-        model="models/text-embedding-001"
-    )
+    embeddings = GoogleEmbeddings(client=client, model="gemini-embedding-001")
 
     metrics = [
-        faithfulness,
-        answer_correctness,
-        answer_similarity
+        Faithfulness(llm=llm),
+        AnswerCorrectness(llm=llm, embeddings=embeddings),
     ]
-
-    for m in metrics:
-        if hasattr(m, 'llm'):
-            m.llm = vertex_llm
-        if hasattr(m, 'embeddings'):
-            m.embeddings = vertex_embeddings
 
     return metrics
 
 
 # --- 2. Load Local Dataset ---
-def load_fixed_dataset(file_path="test_dataset.json"):
+def load_fixed_dataset(file_path="test_dataset.json", num_samples: int = None):
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"❌ {file_path} not found. Please run 'prepare_data.py' first.")
 
     print(f"📂 Loading dataset from {file_path}...")
     with open(file_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+
+    if num_samples is not None:
+        data = data[:num_samples]
+
+    print(f"Loaded {len(data)} samples.")
+    return data
 
 
 # --- 3. Weave Evaluation Model ---
@@ -86,21 +81,33 @@ class DocstringEvaluatorModel(weave.Model):
 
 
 # --- 4. Main Execution ---
-def main():
+app = typer.Typer()
+
+
+@app.command()
+def main(
+        num_samples: Annotated[
+            int,
+            typer.Option(
+                "--samples",
+                "-n",
+                help="Number of samples to evaluate from the dataset. Defaults to all.",
+            ),
+        ] = None,
+):
     weave.init("docstringify-vertex-eval")
 
     # 1. Setup Metrics (Automatic Auth)
     try:
         metrics = get_google_metrics()
-        print("✅ Vertex AI (Gemini 2.5 Flash) configured via ADC.")
+        print("✅ Vertex AI (Gemini 2.5 Flash) configured.")
     except Exception as e:
         print(f"❌ Error configuring Vertex AI: {e}")
-        print("💡 Hint: Did you run 'gcloud auth application-default login'?")
         return
 
     # 2. Load Data
     try:
-        eval_data = load_fixed_dataset()
+        eval_data = load_fixed_dataset(num_samples=num_samples)
     except FileNotFoundError as e:
         print(e)
         return
@@ -146,4 +153,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    app()
