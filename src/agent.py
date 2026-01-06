@@ -57,7 +57,7 @@ class AgentState(BaseModel):
 # Updated prompt: removed tool instructions since context is now injected directly
 SYSTEM_PROMPT = """
 You are an expert Python documentation generator.
-Your task is to generate a Google-style docstring for the provided code snippet.
+Your task is to generate a clear and concise Google-style docstring for the provided code snippet.
 Use the context provided (retrieved from the codebase) to understand dependencies, types, and logic.
 
 Output ONLY the docstring string.
