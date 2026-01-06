@@ -63,13 +63,12 @@ class CodeStructureVisitor(ast.NodeVisitor):
             type=actual_type,
             parent_class=self.current_class,
             line_number=node.lineno,
-            docstring=docstring
+            docstring=docstring,
         )
 
-        self.raw_documents.append(Document(
-            page_content=content,
-            metadata=metadata.model_dump()
-        ))
+        self.raw_documents.append(
+            Document(page_content=content, metadata=metadata.model_dump())
+        )
 
     def visit_ClassDef(self, node):
         """
@@ -81,7 +80,11 @@ class CodeStructureVisitor(ast.NodeVisitor):
         split_node = None
 
         # We iterate to find the first method and see if it is __init__
-        methods = [child for child in node.body if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))]
+        methods = [
+            child
+            for child in node.body
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
 
         if methods:
             first_method = methods[0]
@@ -106,8 +109,10 @@ class CodeStructureVisitor(ast.NodeVisitor):
             end_index = split_node.lineno - 1
 
             # Safety check
-            if start_index < 0: start_index = 0
-            if end_index > len(self.lines): end_index = len(self.lines)
+            if start_index < 0:
+                start_index = 0
+            if end_index > len(self.lines):
+                end_index = len(self.lines)
 
             class_header = "".join(self.lines[start_index:end_index])
         else:
@@ -121,13 +126,12 @@ class CodeStructureVisitor(ast.NodeVisitor):
             name=node.name,
             type="class_definition",
             line_number=node.lineno,
-            docstring=docstring
+            docstring=docstring,
         )
 
-        self.raw_documents.append(Document(
-            page_content=class_header,
-            metadata=metadata.model_dump()
-        ))
+        self.raw_documents.append(
+            Document(page_content=class_header, metadata=metadata.model_dump())
+        )
 
         # 3. Manage Context and Recurse
         previous_class = self.current_class
@@ -144,10 +148,7 @@ CHUNK_OVERLAP = 200
 
 def get_splitter() -> TextSplitter:
     """Returns a Python-aware text splitter configuration."""
-    return PythonCodeTextSplitter(
-        chunk_size=CHUNK_SIZE,
-        chunk_overlap=CHUNK_OVERLAP
-    )
+    return PythonCodeTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
 
 
 def load_and_split_repository(repo_path: str) -> List[Document]:

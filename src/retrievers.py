@@ -1,8 +1,6 @@
 import os
 from typing import List
 
-import chromadb
-from langchain_chroma import Chroma
 from src.loader import load_vector_store
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings

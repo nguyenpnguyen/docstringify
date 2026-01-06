@@ -1065,6 +1065,7 @@ dependencies = [
     { name = "torch", version = "2.9.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform != 'darwin'" },
     { name = "transformers" },
     { name = "typer" },
+    { name = "wandb" },
     { name = "weave" },
 ]
 
@@ -1102,6 +1103,7 @@ requires-dist = [
     { name = "torch", specifier = ">=2.7.0", index = "https://download.pytorch.org/whl/cpu" },
     { name = "transformers", specifier = ">=4.57.1" },
     { name = "typer", specifier = ">=0.20.0" },
+    { name = "wandb", specifier = ">=0.23.1" },
     { name = "weave", specifier = ">=0.52.0" },
 ]
 

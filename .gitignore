@@ -240,3 +240,6 @@ __marimo__/
 
 # Test samples
 tests/sample/
+
+credentials.json
+GEMINI.md

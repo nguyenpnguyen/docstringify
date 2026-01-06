@@ -1,7 +1,7 @@
-from typing import List
-from dataclasses import dataclass
+import os
+from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.embeddings import Embeddings
@@ -18,31 +18,29 @@ from src.loader import load_llm, load_embeddings, load_vector_store
 from src.retrievers import retrieve_relevant_docs
 
 # --- Configuration ---
-LLM_ID = "qwen3:4b-instruct"
-EMBED_ID = "qwen3-embedding:0.6b"
-COLLECTION = "eval_table"
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_name = os.path.basename(current_dir)
 
 config = {
     "llm_id": "qwen3:4b-instruct",
     "embed_id": "qwen3-embedding:0.6b",
-    "chroma_collection": "eval_table",
+    "chroma_collection": project_name,
 }
 
 # --- Initialization ---
 # Load LLM and Embeddings
-llm: BaseChatModel = load_llm(model=LLM_ID, temperature=0.2, num_ctx=8192)
-embeddings: Embeddings = load_embeddings(model=EMBED_ID)
+llm: BaseChatModel = load_llm(model=config["llm_id"], temperature=0.2, num_ctx=8192)
+embeddings: Embeddings = load_embeddings(model=config["embed_id"])
 
 vector_store: VectorStore = load_vector_store(
-    collection_name=COLLECTION,
+    collection_name=config["chroma_collection"],
     embedding=embeddings,
 )
 
 
 # --- Schemas ---
 
-@dataclass
-class ResponseFormat:
+class ResponseFormat(BaseModel):
     """The structured response expected from the generation agent."""
     docstring: str
 
@@ -50,8 +48,8 @@ class ResponseFormat:
 class AgentState(BaseModel):
     """The state of the agent execution pipeline."""
     code_snippet: str
-    context: List[Document]
-    docstring: str
+    context: List[Document] = Field(default_factory=list)
+    docstring: Optional[str] = None
 
 
 # --- Prompts ---
@@ -73,7 +71,7 @@ def retrieve_node(state: AgentState, config: RunnableConfig):
     Node 1: Deterministic Retrieval
     Calls the python function directly to get context.
     """
-    code = state["code_snippet"]
+    code = state.code_snippet
 
     # We call the python function directly as requested.
     # Assuming retrieve_relevant_docs takes (query, vector_store) or similar.
@@ -88,8 +86,8 @@ def generate_node(state: AgentState, config: RunnableConfig):
     Node 2: Generation
     Uses LLM with Structured Output to generate the docstring.
     """
-    code = state["code_snippet"]
-    context_docs = state["context"]
+    code = state.code_snippet
+    context_docs = state.context
 
     # Format context for the prompt
     context_str = "\n\n".join(
@@ -104,7 +102,7 @@ def generate_node(state: AgentState, config: RunnableConfig):
     ]
 
     # Bind structured output to force the ResponseFormat
-    structured_llm = llm.with_structured_output(ResponseFormat)
+    structured_llm = llm.with_structured_output(ResponseFormat, method="json_schema")
     response = structured_llm.invoke(messages)
 
     return {"docstring": response.docstring}
