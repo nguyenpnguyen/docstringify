@@ -1,64 +1,61 @@
 import weave
 import os
 import json
+import logging
 from typing import List, Annotated
 
 import typer
 
+from pydantic import BaseModel
+
 # Ragas & LangChain
 from langchain_core.documents import Document
 from datasets import Dataset
-from ragas import evaluate
-from ragas.metrics import Faithfulness, AnswerCorrectness
+from ragas import experiment
+from ragas.metrics.collections import AnswerRelevancy
 
 from ragas.llms import llm_factory
-from ragas.embeddings import GoogleEmbeddings
+from ragas.embeddings.base import embedding_factory
 
 from google import genai
 
 from agent import agent
 from retrievers import index_codebase
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+logger = logging.getLogger(__name__)
+
 client = genai.Client(api_key=os.environ.get("GOOGLE_API_KEY"))
 
-def get_google_metrics():
-    """
-    Configures RAGAS metrics to use Gemini 2.5 Flash with the Gemini API.
-    """
+llm = llm_factory(
+    "gemini-flash-latest",
+    provider="google",
+    client=client,
+    temperature=0,
+)
 
-    llm = llm_factory(
-        "gemini-2.5-flash",
-        provider="google",
-        client=client
-    )
+embeddings = embedding_factory("google", model="gemini-embedding-001", client=client)
 
-    embeddings = GoogleEmbeddings(client=client, model="gemini-embedding-001")
-
-    metrics = [
-        Faithfulness(llm=llm),
-        AnswerCorrectness(llm=llm, embeddings=embeddings),
-    ]
-
-    return metrics
-
-
-# --- 2. Load Local Dataset ---
 def load_fixed_dataset(file_path="test_dataset.json", num_samples: int = None):
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"❌ {file_path} not found. Please run 'prepare_data.py' first.")
+        logger.error(f"{file_path} not found. Please run 'prepare_data.py' first.")
 
-    print(f"📂 Loading dataset from {file_path}...")
+    logger.info(f"Loading evaluation dataset from {file_path}...")
     with open(file_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     if num_samples is not None:
         data = data[:num_samples]
 
-    print(f"Loaded {len(data)} samples.")
+    logger.info(f"Loaded {len(data)} samples for evaluation.")
     return data
 
 
-# --- 3. Weave Evaluation Model ---
 class DocstringEvaluatorModel(weave.Model):
     """Wraps the LangGraph agent to ensure Weave traces the execution."""
 
@@ -79,10 +76,21 @@ class DocstringEvaluatorModel(weave.Model):
             "retrieved_contexts": context_strings
         }
 
+class ExperimentResult(BaseModel):
+    answer_relevancy: float
 
-# --- 4. Main Execution ---
+@experiment(ExperimentResult)
+def run_eval(row) -> ExperimentResult:
+    answer_relevancy = AnswerRelevancy(llm=llm, embeddings=embeddings)
+
+    relevancy_result = answer_relevancy.score(
+        user_input=row["question"][0],
+        response=row["answer"][0]
+    )
+
+    return ExperimentResult(answer_relevancy=relevancy_result.value)
+
 app = typer.Typer()
-
 
 @app.command()
 def main(
@@ -97,22 +105,13 @@ def main(
 ):
     weave.init("docstringify-vertex-eval")
 
-    # 1. Setup Metrics (Automatic Auth)
-    try:
-        metrics = get_google_metrics()
-        print("✅ Vertex AI (Gemini 2.5 Flash) configured.")
-    except Exception as e:
-        print(f"❌ Error configuring Vertex AI: {e}")
-        return
-
-    # 2. Load Data
     try:
         eval_data = load_fixed_dataset(num_samples=num_samples)
     except FileNotFoundError as e:
         print(e)
         return
 
-    print(f"🏃 Running Inference on {len(eval_data)} samples...")
+    logger.info(f"Running inference with {len(eval_data)} samples.")
 
     # Initialize Weave Model
     model = DocstringEvaluatorModel()
@@ -132,24 +131,21 @@ def main(
             "ground_truth": ground_truth
         })
 
-    # 3. Run Evaluation
-    print("📊 Calculating RAGAS Scores with Gemini Judge...")
+    logger.info("Calculating RAGAS Scores with Gemini Judge...")
 
-    hf_dataset = Dataset.from_list(results)
+    dataset = Dataset.from_list(results)
 
-    scores = evaluate(
-        dataset=hf_dataset,
-        metrics=metrics,
-    )
+    exp_results = run_eval(dataset)
 
-    print("\n--- Evaluation Summary ---")
-    print(scores)
+    logger.info("Experiment Results:")
+    logger.info(exp_results)
 
-    results_df = scores.to_pandas()
-    print("💾 Publishing detailed results to Weave...")
-    weave.publish(results_df, "ragas_evaluation_table")
+    # results_df = exp_results.to_pandas()
 
-    print("✅ Done! Check your Weave dashboard.")
+    logger.info("Publishing results to Weave...")
+    # weave.publish(results_df, "ragas_evaluation_table")
+
+    logger.info("✅ Done! Check your Weave dashboard.")
 
 
 if __name__ == "__main__":
