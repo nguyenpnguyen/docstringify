@@ -145,7 +145,6 @@ class CodeStructureVisitor(ast.NodeVisitor):
 CHUNK_SIZE = 1500
 CHUNK_OVERLAP = 200
 
-
 def get_splitter() -> TextSplitter:
     """Returns a Python-aware text splitter configuration."""
     return PythonCodeTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
