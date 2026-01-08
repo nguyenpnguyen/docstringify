@@ -8,6 +8,11 @@ from langchain_core.documents import Document
 
 from pydantic import BaseModel
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -180,7 +185,7 @@ def load_and_split_repository(repo_path: str) -> List[Document]:
                         tree = ast.parse(file_content)
                         visitor.visit(tree)
                     except SyntaxError:
-                        print(f"Syntax Error parsing {full_path}, skipping AST.")
+                        logger.error(f"Syntax Error parsing {full_path}, skipping AST.")
                         continue
 
                     # 2. Text Split (Size Phase)

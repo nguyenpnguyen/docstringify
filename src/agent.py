@@ -1,4 +1,5 @@
 import os
+import logging
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
@@ -16,6 +17,13 @@ from langgraph.graph import StateGraph, END
 # Import your custom modules (Assumed to exist based on your snippet)
 from src.loader import load_llm, load_embeddings, load_vector_store
 from src.retrievers import retrieve_relevant_docs
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+logger = logging.getLogger(__name__)
 
 # --- Configuration ---
 current_dir = os.path.dirname(os.path.abspath(__file__))

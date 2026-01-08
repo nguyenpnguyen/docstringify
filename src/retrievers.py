@@ -1,4 +1,5 @@
 import os
+import logging
 from typing import List
 
 from src.loader import load_vector_store
@@ -8,8 +9,14 @@ from langchain_core.vectorstores import VectorStore
 
 from uuid import uuid4
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
-def index_codebase(documents: List[Document], embedding_model: Embeddings, vector_store: VectorStore = None) -> VectorStore:
+logger = logging.getLogger(__name__)
+
+def index_codebase(documents: List[Document], embedding_model: Embeddings, vector_store: VectorStore) -> VectorStore:
     """
     Takes a list of Documents and persists them to a vector store.
     If no vector_store is provided, one will be created.
