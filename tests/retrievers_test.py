@@ -1,4 +1,3 @@
-import pytest
 from langchain_core.vectorstores import VectorStore
 from src.retrievers import retrieve_relevant_docs
 

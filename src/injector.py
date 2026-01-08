@@ -65,7 +65,7 @@ def load_and_split_repository(repo_path: str) -> List[Document]:
 
     return final_docs
 
-def index_codebase(documents: List[Document], embedding_model: Embeddings, vector_store: VectorStore) -> VectorStore:
+def index_codebase(documents: List[Document], embedding_model: Embeddings, vector_store: VectorStore | None) -> VectorStore:
     """
     Takes a list of Documents and persists them to a vector store.
     If no vector_store is provided, one will be created.
