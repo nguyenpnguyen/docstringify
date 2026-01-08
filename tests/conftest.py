@@ -1,6 +1,6 @@
 import pytest
 from langchain_core.documents import Document
-from src.retrievers import index_codebase
+from src.injector import index_codebase
 from src.loader import load_embeddings, load_vector_store
 
 # Sample documents to be indexed in the test vector store

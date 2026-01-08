@@ -40,7 +40,7 @@ def load_embeddings(model: str) -> Embeddings | None:
         logger.error(f"Error loading Embeddings model '{model}': {e}")
 
 
-def load_vector_store(collection_name: str, embedding: Embeddings, **kwargs) -> VectorStore | None:
+def load_vector_store(collection_name: str, embedding: Embeddings | None, **kwargs) -> VectorStore | None:
     try:
         return Chroma(
             embedding_function=embedding,

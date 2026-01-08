@@ -37,10 +37,10 @@ config = {
 
 # --- Initialization ---
 # Load LLM and Embeddings
-llm: BaseChatModel = load_llm(model=config["llm_id"], temperature=0.2, num_ctx=8192)
-embeddings: Embeddings = load_embeddings(model=config["embed_id"])
+llm: BaseChatModel | None = load_llm(model=config["llm_id"], temperature=0.2, num_ctx=8192)
+embeddings: Embeddings | None = load_embeddings(model=config["embed_id"])
 
-vector_store: VectorStore = load_vector_store(
+vector_store: VectorStore | None = load_vector_store(
     collection_name=config["chroma_collection"],
     embedding=embeddings,
 )
