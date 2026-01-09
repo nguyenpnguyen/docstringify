@@ -1,9 +1,11 @@
+from concurrent.futures import ThreadPoolExecutor
 import os
 import logging
 
 from langchain_core.documents import Document
 
 from src.code_parser import CodeStructureVisitor, parse_code_structure, split_code_by_length, get_splitter
+from src.db import *
 
 logging.basicConfig(
     level=logging.INFO,
@@ -60,5 +62,9 @@ def load_and_split_repository(repo_path: str) -> list[Document]:
 
     return final_docs
 
-def index_codebase(documents: list[Document]):
-    pass
+def index_codebase(documents: list[Document]) -> list[CodeChunk]:
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        results: list[CodeChunk] = list(executor.map(create_code_chunk, documents))
+
+    logger.debug(f"indexed codebase with {len(results)} chunks")
+    return results
