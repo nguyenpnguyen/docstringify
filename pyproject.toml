@@ -23,9 +23,9 @@ dependencies = [
     "pydantic",
     "sentence-transformers>=5.1.2",
     "langchain-community>=0.4.1",
-    "langchain-chroma>=1.1.0",
     "wandb>=0.23.1",
     "ragas>=0.4.2",
+    "peewee>=3.19.0",
 ]
 
 [tool.uv.sources]

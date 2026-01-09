@@ -1,12 +1,11 @@
 import os
 import logging
-from typing import List, Optional
 
+from typing import Optional
 from pydantic import BaseModel, Field
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.embeddings import Embeddings
-from langchain_core.vectorstores import VectorStore
 from langchain_core.documents import Document
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
@@ -15,7 +14,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.graph import StateGraph, END
 
 # Import your custom modules (Assumed to exist based on your snippet)
-from src.loader import load_llm, load_embeddings, load_vector_store
+from src.loader import load_llm, load_embeddings
 from src.retrievers import retrieve_relevant_docs
 
 logging.basicConfig(
@@ -32,18 +31,12 @@ project_name = os.path.basename(current_dir)
 config = {
     "llm_id": "qwen3:4b-instruct",
     "embed_id": "qwen3-embedding:0.6b",
-    "chroma_collection": project_name,
 }
 
 # --- Initialization ---
 # Load LLM and Embeddings
-llm: BaseChatModel | None = load_llm(model=config["llm_id"], temperature=0.2, num_ctx=8192)
-embeddings: Embeddings | None = load_embeddings(model=config["embed_id"])
-
-vector_store: VectorStore | None = load_vector_store(
-    collection_name=config["chroma_collection"],
-    embedding=embeddings,
-)
+llm: Optional[BaseChatModel] = load_llm(model=config["llm_id"], temperature=0.2, num_ctx=8192)
+embeddings: Optional[Embeddings] = load_embeddings(model=config["embed_id"])
 
 
 # --- Schemas ---
@@ -56,7 +49,7 @@ class ResponseFormat(BaseModel):
 class AgentState(BaseModel):
     """The state of the agent execution pipeline."""
     code_snippet: str
-    context: List[Document] = Field(default_factory=list)
+    context: list[Document] = Field(default_factory=list)
     docstring: Optional[str] = None
 
 
@@ -81,10 +74,7 @@ def retrieve_node(state: AgentState, config: RunnableConfig):
     """
     code = state.code_snippet
 
-    # We call the python function directly as requested.
-    # Assuming retrieve_relevant_docs takes (query, vector_store) or similar.
-    # Adjust arguments based on your actual src.tools implementation.
-    docs = retrieve_relevant_docs(code, vector_store)
+    docs = retrieve_relevant_docs(code)
 
     return {"context": docs}
 

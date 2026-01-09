@@ -1,9 +1,9 @@
 import logging
+
+from typing import Optional
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langchain_core.embeddings import Embeddings
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.vectorstores import VectorStore
-from langchain_chroma import Chroma
 
 logging.basicConfig(
     level=logging.INFO,
@@ -12,7 +12,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-def load_llm(model: str, temperature: float = 0.2, num_ctx: int = 8192) -> BaseChatModel | None:
+def load_llm(model: str, temperature: float = 0.2, num_ctx: int = 8192) -> Optional[BaseChatModel]:
     """
     Load LLM
     """
@@ -27,7 +27,7 @@ def load_llm(model: str, temperature: float = 0.2, num_ctx: int = 8192) -> BaseC
         logger.error(f"Error loading LLM '{model}': {e}")
 
 
-def load_embeddings(model: str) -> Embeddings | None:
+def load_embeddings(model: str) -> Optional[Embeddings]:
     """
     Load embedding
     """
@@ -39,12 +39,3 @@ def load_embeddings(model: str) -> Embeddings | None:
     except Exception as e:
         logger.error(f"Error loading Embeddings model '{model}': {e}")
 
-
-def load_vector_store(collection_name: str, embedding: Embeddings | None, **kwargs) -> VectorStore | None:
-    try:
-        return Chroma(
-            embedding_function=embedding,
-            collection_name=collection_name,
-        )
-    except Exception as e:
-        logger.error(f"Error loading Vector Store '{collection_name}': {e}")

@@ -2,7 +2,7 @@ import ast
 import builtins
 import logging
 
-from typing import List, Optional, Set
+from typing import Optional
 from langchain_text_splitters import TextSplitter, PythonCodeTextSplitter
 from langchain_core.documents import Document
 
@@ -23,22 +23,22 @@ class CodeChunkMetadata(BaseModel):
     parent_class: Optional[str] = None  # For methods, the class they belong
     line_number: Optional[int] = None
     docstring: Optional[str] = None
-    calls: List[str] = Field(default_factory=list) # store function calls in code chunk
+    calls: list[str] = Field(default_factory=list) # store function calls in code chunk
 
 class CodeStructureVisitor(ast.NodeVisitor):
     def __init__(self, source_code: str, file_path: str):
         self.source_code = source_code
         self.file_path = file_path
-        self.raw_documents: List[Document] = []
+        self.raw_documents: list[Document] = []
         self.lines = source_code.splitlines(keepends=True)
         self.current_class: Optional[str] = None
-        self.nodes_to_skip: Set[ast.AST] = set()
+        self.nodes_to_skip: set[ast.AST] = set()
         self.builtins_set = set(dir(builtins))
 
     def _get_code_segment(self, node) -> str:
         return ast.get_source_segment(self.source_code, node) or ""
 
-    def _extract_calls(self, node: ast.AST) -> List[str]:
+    def _extract_calls(self, node: ast.AST) -> list[str]:
         """
         Helper to traverse a specific node (Function/Method) 
         and extract all function calls within it.
@@ -168,7 +168,7 @@ def parse_code_structure(visitor: CodeStructureVisitor, code: str, file_path: st
     except SyntaxError as e:
         raise SyntaxError(f"Syntax error in file {file_path}: {e}")
 
-def split_code_by_length(splitter: TextSplitter, visitor: CodeStructureVisitor) -> List[Document]:
+def split_code_by_length(splitter: TextSplitter, visitor: CodeStructureVisitor) -> list[Document]:
     final_docs = []
 
     split_docs = splitter.split_documents(visitor.raw_documents)
