@@ -1,10 +1,9 @@
 import json
 from peewee import *
-from typing import List
 from langchain_core.documents import Document
 
 # Use a file-based database for persistence
-DB_PATH = "docstringify.db"
+DB_PATH = ":memory:"
 db = SqliteDatabase(DB_PATH, pragmas={"journal_mode": "wal"})
 
 
@@ -75,7 +74,7 @@ def create_call_graph_edge(caller: CodeChunk, callee_name: str) -> CallGraph:
     return CallGraph.get_or_create(caller=caller, callee=callee_name)[0]
 
 
-def get_dependencies(code_chunk: CodeChunk) -> List[CodeChunk]:
+def get_dependencies(code_chunk: CodeChunk) -> list[CodeChunk]:
     """
     Retrieves all code chunks that the given code_chunk calls (its callees).
     """
@@ -90,7 +89,7 @@ def get_dependencies(code_chunk: CodeChunk) -> List[CodeChunk]:
     return list(CodeChunk.select().where(CodeChunk.name.in_(callee_names)))
 
 
-def get_dependents(code_chunk: CodeChunk) -> List[CodeChunk]:
+def get_dependents(code_chunk: CodeChunk) -> list[CodeChunk]:
     """
     Retrieves all code chunks that call the given code_chunk (its callers).
     """
@@ -101,7 +100,7 @@ def get_dependents(code_chunk: CodeChunk) -> List[CodeChunk]:
     )
 
 
-def get_all_code_chunks() -> List[CodeChunk]:
+def get_all_code_chunks() -> list[CodeChunk]:
     """Retrieves all code chunks from the database."""
     return list(CodeChunk.select())
 

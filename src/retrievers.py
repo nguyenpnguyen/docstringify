@@ -1,6 +1,7 @@
 import logging
 
 from langchain_core.documents import Document
+from src.db import CodeChunk
 
 
 logging.basicConfig(
@@ -10,11 +11,11 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-def dependency_retriever():
+def dependency_retriever(chunk: CodeChunk) -> list[Document]:
     pass
 
-def usage_retriever():
+def usage_retriever(chunk: CodeChunk) -> list[Document]:
     pass
 
-def retrieve_relevant_docs(query: str, k: int = 10) -> list[Document]:
+def retrieve_relevant_docs(code: str) -> list[Document]:
     pass
