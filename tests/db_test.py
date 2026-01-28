@@ -89,4 +89,4 @@ def test_code_chunk_creation(populated_db):
     func_a = select_code_chunk_by_name("func_a")
     assert func_a.path == "test.py"
     assert func_a.parent_class == "MyClass"
-    assert "'calls': ['func_b']" in func_a.calls
+    assert '["func_b"]' in func_a.calls

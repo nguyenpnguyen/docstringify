@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class CodeChunkMetadata(BaseModel):
-    source: str
+    path: str
     name: str
     type: str  # e.g., "function", "class_definition", "method"
     parent_class: Optional[str] = None  # For methods, the class they belong
@@ -109,7 +109,7 @@ class CodeStructureVisitor(ast.NodeVisitor):
         calls = self._extract_calls(node)
 
         metadata = CodeChunkMetadata(
-            source=self.file_path,
+            path=self.file_path,
             name=node.name,
             type=actual_type,
             parent_class=self.current_class,
@@ -165,7 +165,7 @@ class CodeStructureVisitor(ast.NodeVisitor):
         docstring = ast.get_docstring(node)
 
         metadata = CodeChunkMetadata(
-            source=self.file_path,
+            path=self.file_path,
             name=node.name,
             type="class_definition",
             line_number=node.lineno,
