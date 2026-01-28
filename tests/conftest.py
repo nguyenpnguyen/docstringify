@@ -1,38 +1,82 @@
 import pytest
+from peewee import SqliteDatabase
 from langchain_core.documents import Document
-from src.injector import index_codebase
-from src.loader import load_embeddings, load_vector_store
 
-# Sample documents to be indexed in the test vector store
-TEST_DOCS = [
-    Document(
-        page_content="def add(a: int, b: int) -> int:\n    \"\"\"Adds two integers.\"\"\"\n    return a + b",
-        metadata={"source": "math_utils.py"}
-    ),
-    Document(
-        page_content="def subtract(a: int, b: int) -> int:\n    \"\"\"Subtracts second integer from the first.\"\"\"\n    return a - b",
-        metadata={"source": "math_utils.py"}
-    ),
-]
+from src.db import (
+    CodeChunk,
+    CallGraph,
+    get_or_create_code_chunk,
+)
 
-@pytest.fixture(scope="session")
-def test_vector_store():
+# A sample document representing a function that calls another function.
+DOC_A = Document(
+    page_content="def func_a(self):\n    \"\"\"Doc A\"\"\"\n    self.func_b()",
+    metadata={
+        "path": "test.py",
+        "name": "func_a",
+        "type": "method",
+        "parent_class": "MyClass",
+        "line_number": 1,
+        "docstring": "Doc A",
+        "calls": ["func_b"],
+    },
+)
+
+# A sample document representing a function that is called.
+DOC_B = Document(
+    page_content="def func_b(self):\n    \"\"\"Doc B\"\"\"" ,
+    metadata={
+        "path": "test.py",
+        "name": "func_b",
+        "type": "method",
+        "parent_class": "MyClass",
+        "line_number": 5,
+        "docstring": "Doc B",
+        "calls": [],
+    },
+)
+
+# A sample document representing a standalone function.
+DOC_C = Document(
+    page_content="def func_c():\n    \"\"\"Doc C\"\"\"" ,
+    metadata={
+        "path": "utils.py",
+        "name": "func_c",
+        "type": "function",
+        "line_number": 1,
+        "docstring": "Doc C",
+        "calls": [],
+    },
+)
+
+
+@pytest.fixture(autouse=True)
+def test_db():
     """
-    Pytest fixture to create and populate a test vector store.
-    This fixture has a 'session' scope, so it's created once per test session.
+    Pytest fixture to use an in-memory SQLite database for all tests.
+    This automatically sets up and tears down the database for isolation.
     """
-    # Use the real embedding model from the application for a more realistic test
-    # This assumes an Ollama instance is running, as per the project setup.
-    embedding_model = load_embeddings(model="qwen3-embedding:0.6b")
+    test_db = SqliteDatabase(":memory:")
+    models = [CodeChunk, CallGraph]
 
-    # Use an in-memory Chroma instance for testing to avoid creating files
-    vector_store = load_vector_store(
-        collection_name="test_collection",
-        embedding=embedding_model,
-    )
+    # Temporarily bind the models to the in-memory database
+    with test_db.bind_ctx(models):
+        test_db.connect()
+        test_db.create_tables(models)
+        yield test_db
+        test_db.drop_tables(models)
+        test_db.close()
 
-    # Index the sample documents
-    uuids = [str(i) for i in range(len(TEST_DOCS))]
-    vector_store.add_documents(documents=TEST_DOCS, ids=uuids)
 
-    return vector_store
+@pytest.fixture
+def populated_db(test_db):
+    """
+    Fixture that populates the in-memory database with sample code chunks.
+    Depends on the `test_db` fixture to ensure a clean database.
+    """
+    # Create the code chunks in the database
+    get_or_create_code_chunk(DOC_A)
+    get_or_create_code_chunk(DOC_B)
+    get_or_create_code_chunk(DOC_C)
+
+    return test_db

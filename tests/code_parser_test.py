@@ -31,6 +31,21 @@ class MyClass:
         return self.val
 """
 
+CODE_SAMPLE_WITH_CALLS = """
+import numpy as np
+from os import path
+
+def func_one():
+    print("hello")
+    res = np.array([1, 2])
+    func_two(res)
+
+def func_two(data):
+    is_valid = path.exists("/tmp")
+    return data
+"""
+
+
 CODE_SAMPLE_LONG_FUNCTION = """
 def long_function():
     \"\"\"This is a very long docstring for a very long function.
@@ -93,6 +108,27 @@ def test_code_structure_visitor_class():
     assert prop_doc.metadata["type"] == "method"
     assert prop_doc.metadata["docstring"] == "Property doc."
     assert prop_doc.metadata["parent_class"] == "MyClass"
+
+
+def test_code_structure_visitor_extracts_calls():
+    visitor = CodeStructureVisitor(CODE_SAMPLE_WITH_CALLS, FILE_PATH)
+    parse_code_structure(visitor, CODE_SAMPLE_WITH_CALLS, FILE_PATH)
+
+    assert len(visitor.raw_documents) == 2
+    func_one_doc = visitor.raw_documents[0]
+    func_two_doc = visitor.raw_documents[1]
+
+    assert func_one_doc.metadata["name"] == "func_one"
+    func_one_calls = set(func_one_doc.metadata["calls"])
+    # 'print' is a builtin, so it should be excluded.
+    # 'np.array' becomes 'numpy.array' due to alias tracking.
+    # 'func_two' is a local call.
+    assert func_one_calls == {"numpy.array", "func_two"}
+
+    assert func_two_doc.metadata["name"] == "func_two"
+    func_two_calls = set(func_two_doc.metadata["calls"])
+    # 'path.exists' becomes 'os.path.exists'.
+    assert func_two_calls == {"os.path.exists"}
 
 
 def test_parse_code_structure_syntax_error():

@@ -1,3 +1,4 @@
+import json
 from peewee import *
 from typing import List
 from langchain_core.documents import Document
@@ -20,6 +21,7 @@ class CodeChunk(BaseModel):
     parent_class = TextField(null=True)
     line_number = IntegerField()
     docstring = TextField(null=True)
+    calls = TextField(default="[]")  # Store as JSON string
 
 
 class CallGraph(BaseModel):
@@ -42,7 +44,7 @@ def init_db():
 
 
 def get_or_create_code_chunk(code_chunk_doc: Document) -> tuple[CodeChunk, bool]:
-    """Gets or creates a code chunk."""
+    """Gets or creates a code chunk, storing its call data."""
     return CodeChunk.get_or_create(
         name=code_chunk_doc.metadata["name"],
         defaults={
@@ -52,6 +54,7 @@ def get_or_create_code_chunk(code_chunk_doc: Document) -> tuple[CodeChunk, bool]
             "parent_class": code_chunk_doc.metadata.get("parent_class"),
             "line_number": code_chunk_doc.metadata["line_number"],
             "docstring": code_chunk_doc.metadata.get("docstring"),
+            "calls": json.dumps(code_chunk_doc.metadata.get("calls", [])),
         },
     )
 
@@ -101,3 +104,16 @@ def get_dependents(code_chunk: CodeChunk) -> List[CodeChunk]:
 def get_all_code_chunks() -> List[CodeChunk]:
     """Retrieves all code chunks from the database."""
     return list(CodeChunk.select())
+
+
+def build_call_graph():
+    """
+    Builds the call graph from the 'calls' data stored in each code chunk.
+    """
+    all_chunks = get_all_code_chunks()
+
+    with db.atomic():
+        for chunk in all_chunks:
+            callee_names = json.loads(chunk.calls)
+            for callee_name in callee_names:
+                create_call_graph_edge(chunk, callee_name)

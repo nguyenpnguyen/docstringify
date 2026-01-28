@@ -1,7 +1,6 @@
 import logging
 
 from langchain_core.documents import Document
-from langchain_core.vectorstores import VectorStore
 
 
 logging.basicConfig(
@@ -17,8 +16,5 @@ def dependency_retriever():
 def usage_retriever():
     pass
 
-def recipropal_rank_fusion():
-    pass
-
-def retrieve_relevant_docs(query: str, vector_store: VectorStore, k: int = 4) -> list[Document]:
+def retrieve_relevant_docs(query: str, k: int = 10) -> list[Document]:
     pass

@@ -1,33 +1,33 @@
 import pytest
+from unittest.mock import patch
 from langchain_core.documents import Document
+
 from src.agent import retrieve_node, generate_node, agent, AgentState
+from src.db import build_call_graph, select_code_chunk_by_name
 
-# The `test_vector_store` fixture from conftest.py is used in these tests.
 
-def test_retrieve_node(test_vector_store, monkeypatch):
+def test_retrieve_node(populated_db):
     """
-    Tests the retrieve_node to ensure it gets context from the vector store.
-    It uses monkeypatch to replace the agent's global vector_store with the test fixture.
+    Tests the retrieve_node to ensure it gets context by traversing the call graph.
     """
-    # This code snippet is intentionally similar to content in the test_vector_store
-    code_snippet = "def add(x, y): return x + y"
-    initial_state = AgentState(code_snippet=code_snippet)
+    # First, build the graph from the data in the populated_db
+    build_call_graph()
 
-    # Replace the vector_store used by the retrieve_node with our test fixture
-    monkeypatch.setattr("src.agent.vector_store", test_vector_store)
+    # The initial state contains the name of the chunk we want to process
+    initial_state = AgentState(code_chunk_name="func_a")
 
-    # The config argument is not used in the node, so we can pass a dummy
-    result_state = retrieve_node(initial_state, config=None)
+    # Run the retrieve node
+    result_state = retrieve_node(initial_state)
 
     # 1. Check that the 'context' field was populated
     assert "context" in result_state
     assert isinstance(result_state["context"], list)
-
-    # 2. Check that we retrieved at least one document
     assert len(result_state["context"]) > 0, "Retrieve node failed to find any context."
 
-    # 3. Check that the retrieved content is relevant
-    assert "def add(a: int, b: int)" in result_state["context"][0].page_content
+    # 2. Check that the retrieved content is correct
+    # The context for 'func_a' should be 'func_b' (its dependency).
+    context_names = {doc.metadata["name"] for doc in result_state["context"]}
+    assert "func_b" in context_names
 
 
 def test_generate_node():
@@ -35,17 +35,19 @@ def test_generate_node():
     Tests the generate_node to ensure it generates a docstring.
     This is an integration test as it calls the actual LLM.
     """
-    code_snippet = "def my_func(a, b): return a * b"
+    code_chunk = select_code_chunk_by_name("func_a") # Assume populated_db is run
     context_docs = [
-        Document(page_content="def multiply(x, y): return x * y", metadata={"source": "math.py"})
+        Document(page_content="def func_b(self): pass", metadata={"name": "func_b"})
     ]
+
     initial_state = AgentState(
-        code_snippet=code_snippet,
+        code_chunk_name="func_a",
+        code_chunk=code_chunk,
         context=context_docs
     )
 
     # The config argument is not used in the node, so we can pass a dummy
-    result_state = generate_node(initial_state, config=None)
+    result_state = generate_node(initial_state)
 
     # Check that a docstring was generated
     assert "docstring" in result_state
@@ -54,16 +56,15 @@ def test_generate_node():
     assert "Args:" in result_state["docstring"], "Docstring should follow Google style with 'Args:'."
 
 
-def test_agent_workflow(test_vector_store, monkeypatch):
+def test_agent_workflow(populated_db):
     """
-    Tests the full agent workflow from end to end.
-    It uses monkeypatch to replace the agent's vector_store with our pre-populated test fixture.
+    Tests the full agent workflow with the new database-backed retrieval.
     """
-    # Replace the vector_store used by the agent with our test fixture
-    monkeypatch.setattr("src.agent.vector_store", test_vector_store)
+    # Build the call graph from the test data
+    build_call_graph()
 
-    code_snippet = "def subtract(x, y): return x - y"
-    inputs = {"code_snippet": code_snippet}
+    # The input to the agent is the name of the function to document
+    inputs = {"code_chunk_name": "func_a"}
 
     # Run the full agent workflow
     final_state = agent.invoke(inputs)
@@ -73,7 +74,10 @@ def test_agent_workflow(test_vector_store, monkeypatch):
     assert final_state["docstring"] is not None
     assert len(final_state["docstring"]) > 10
 
-    # 2. Check that context was retrieved
+    # 2. Check that the correct code chunk was processed
+    assert final_state["code_chunk"].name == "func_a"
+
+    # 3. Check that context was retrieved from the database
     assert "context" in final_state
     assert len(final_state["context"]) > 0
-    assert "def subtract(a: int, b: int)" in final_state["context"][0].page_content
+    assert final_state["context"][0].metadata["name"] == "func_b"

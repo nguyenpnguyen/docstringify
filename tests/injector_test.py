@@ -1,26 +1,6 @@
 import pytest
-from langchain_core.documents import Document
-from langchain_core.embeddings import FakeEmbeddings
-from langchain_core.vectorstores import VectorStore
-from src.injector import index_codebase, load_and_split_repository
-from src.loader import load_vector_store
-from pathlib import Path
-import os
-
-
-@pytest.fixture
-def mock_embedding_model() -> FakeEmbeddings:
-    """Fixture for a fake embedding model."""
-    return FakeEmbeddings(size=384)
-
-
-@pytest.fixture
-def in_memory_vector_store(mock_embedding_model: FakeEmbeddings) -> VectorStore:
-    """Fixture for a clean, in-memory vector store for each test."""
-    return load_vector_store(
-        collection_name="test_injector_collection",
-        embedding=mock_embedding_model,
-    )
+from src.injector import index_documents, load_and_split_repository
+from src.db import CodeChunk, CallGraph, select_code_chunk_by_name, get_dependencies
 
 
 @pytest.fixture
@@ -29,50 +9,43 @@ def sample_repo(tmp_path):
     repo_dir = tmp_path / "sample_repo"
     repo_dir.mkdir()
 
-    # Create a simple Python file
     (repo_dir / "my_module.py").write_text("""
 def func_a():
-    \"\"\"A simple function.\"\"\"
-    return 1
+    \"\"\"A simple function that calls another.\"\"\"
+    func_b()
 
-class MyClass:
-    def method_b(self):
-        \"\"\"A simple method.\"\"\"
-        return 2
-""")
-
-    # Create another Python file
-    (repo_dir / "another_module.py").write_text("""
-def func_c():
-    \"\"\"Another function.\"\"\"
-    return 3
+def func_b():
+    \"\"\"A simple function that does nothing.\"\"\"
+    pass
 """)
     yield repo_dir
-    # tmp_path is automatically cleaned up by pytest
 
 
-def test_index_codebase(in_memory_vector_store: VectorStore, mock_embedding_model: FakeEmbeddings):
+def test_index_documents(test_db):
     """
-    Unit test for the index_codebase function.
+    Unit test for the index_documents function.
+    It checks if documents are correctly added to the database and if the call graph is built.
     """
-    test_docs = [
-        Document(page_content="def test_func(): pass", metadata={"source": "test.py"})
-    ]
+    # The `test_db` fixture ensures a clean in-memory database.
+    docs = load_and_split_repository("src") # Use our own src code for a quick test
+    
+    # Run the indexing process
+    index_documents(docs)
 
-    # Pass the in-memory vector store to the function
-    vs = index_codebase(
-        documents=test_docs,
-        embedding_model=mock_embedding_model,
-        vector_store=in_memory_vector_store
-    )
+    # 1. Check if CodeChunk objects were created
+    assert CodeChunk.select().count() > 0, "No CodeChunk objects were created."
 
-    # 1. Check if the function returns the correct object
-    assert vs == in_memory_vector_store, "Function should return the vector store instance."
+    # 2. Check if the CallGraph was built
+    assert CallGraph.select().count() > 0, "CallGraph was not built."
 
-    # 2. Check if the document was actually added by performing a search
-    results = vs.similarity_search("test_func", k=1)
-    assert len(results) > 0, "No documents were found after indexing."
-    assert results[0].page_content == "def test_func(): pass"
+    # 3. Verify a specific relationship
+    # In src/db.py, build_call_graph calls get_all_code_chunks, json.loads, and create_call_graph_edge
+    caller = select_code_chunk_by_name("build_call_graph")
+    dependencies = get_dependencies(caller)
+    
+    dep_names = {dep.name for dep in dependencies}
+    assert "get_all_code_chunks" in dep_names
+    assert "create_call_graph_edge" in dep_names
 
 
 def test_load_and_split_repository(sample_repo):
@@ -81,23 +54,16 @@ def test_load_and_split_repository(sample_repo):
     """
     docs = load_and_split_repository(str(sample_repo))
 
-    assert len(docs) > 0, "No documents were created from the sample repository."
+    assert len(docs) == 2, "Expected to find two function documents."
 
-    # Expecting at least func_a, MyClass (with __init__ implicit), method_b, func_c
-    # The splitting might create more, but at least these logical units should be there
-    expected_names = {"func_a", "MyClass", "method_b", "func_c"}
-    found_names = {doc.metadata["name"] for doc in docs if "name" in doc.metadata}
+    expected_names = {"func_a", "func_b"}
+    found_names = {doc.metadata["name"] for doc in docs}
 
-    assert expected_names.issubset(found_names), f"Missing expected code structures. Found: {found_names}"
+    assert expected_names == found_names, f"Missing or incorrect code structures found. Found: {found_names}"
 
-    # Check for metadata
+    # Check that the call metadata is correct
     for doc in docs:
-        assert "source" in doc.metadata
-        assert "name" in doc.metadata
-        assert "type" in doc.metadata
-        assert doc.metadata["source"].startswith(str(sample_repo))
-        assert doc.page_content is not None
-        assert len(doc.page_content) > 0
-
-    # Ensure no empty documents (might happen with some splitters if not careful)
-    assert all(doc.page_content.strip() != "" for doc in docs)
+        if doc.metadata["name"] == "func_a":
+            assert doc.metadata["calls"] == ["func_b"]
+        if doc.metadata["name"] == "func_b":
+            assert doc.metadata["calls"] == []
