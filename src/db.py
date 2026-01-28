@@ -1,8 +1,10 @@
 from peewee import *
-from typing import Optional
+from typing import List
 from langchain_core.documents import Document
 
-db = SqliteDatabase(":memory:", pragmas={"journal_mode": "wal"})
+# Use a file-based database for persistence
+DB_PATH = "docstringify.db"
+db = SqliteDatabase(DB_PATH, pragmas={"journal_mode": "wal"})
 
 
 class BaseModel(Model):
@@ -12,7 +14,7 @@ class BaseModel(Model):
 
 class CodeChunk(BaseModel):
     path = TextField()
-    name = TextField()
+    name = TextField(unique=True)  # Assuming name is a unique identifier
     type = TextField()
     content = TextField()
     parent_class = TextField(null=True)
@@ -22,53 +24,80 @@ class CodeChunk(BaseModel):
 
 class CallGraph(BaseModel):
     caller = ForeignKeyField(CodeChunk, backref="outgoing_calls")
+    # Using TextField for callee allows for flexibility, e.g., calls to
+    # external libraries or functions not yet parsed.
+    # The alternative is a ForeignKeyField to CodeChunk, which would enforce
+    # relational integrity but require callee chunks to exist first.
     callee = TextField()
 
+    class Meta:
+        # Ensure a call edge is unique
+        primary_key = CompositeKey("caller", "callee")
 
-def create_code_chunk(code_chunk: Document) -> CodeChunk:
-    return CodeChunk.create(
-        path=code_chunk.metadata["path"],
-        name=code_chunk.metadata["name"],
-        type=code_chunk.metadata["type"],
-        content=code_chunk.page_content,
-        parent_class=code_chunk.metadata.get("parent_class"),
-        line_number=code_chunk.metadata["line_number"],
-        docstring=code_chunk.metadata.get("docstring"),
+
+def init_db():
+    """Initializes the database and creates tables."""
+    with db:
+        db.create_tables([CodeChunk, CallGraph])
+
+
+def get_or_create_code_chunk(code_chunk_doc: Document) -> tuple[CodeChunk, bool]:
+    """Gets or creates a code chunk."""
+    return CodeChunk.get_or_create(
+        name=code_chunk_doc.metadata["name"],
+        defaults={
+            "path": code_chunk_doc.metadata["path"],
+            "type": code_chunk_doc.metadata["type"],
+            "content": code_chunk_doc.page_content,
+            "parent_class": code_chunk_doc.metadata.get("parent_class"),
+            "line_number": code_chunk_doc.metadata["line_number"],
+            "docstring": code_chunk_doc.metadata.get("docstring"),
+        },
     )
 
 
 def select_code_chunk_by_name(name: str) -> CodeChunk:
+    """Selects a code chunk by its unique name."""
     return CodeChunk.get(CodeChunk.name == name)
 
 
-def update_code_chunk(code_chunk: CodeChunk, **kwargs):
-    if "name" in kwargs:
-        code_chunk.name = kwargs["name"]
-    if "path" in kwargs:
-        code_chunk.path = kwargs["path"]
-    if "type" in kwargs:
-        code_chunk.type = kwargs["type"]
-    if "content" in kwargs:
-        code_chunk.content = kwargs["content"]
-    if "parent_class" in kwargs:
-        code_chunk.parent_class = kwargs["parent_class"]
-    if "line_number" in kwargs:
-        code_chunk.line_number = kwargs["line_number"]
-    if "docstring" in kwargs:
-        code_chunk.docstring = kwargs["docstring"]
-
-    code_chunk.save()
+def update_code_chunk_docstring(code_chunk: CodeChunk, docstring: str):
+    """Updates the docstring of a specific code chunk."""
+    query = CodeChunk.update(docstring=docstring).where(CodeChunk.id == code_chunk.id)
+    query.execute()
 
 
-def create_call_graph_edge(caller: CodeChunk, callee: str) -> CallGraph:
-    return CallGraph.create(caller=caller, callee=callee)
+def create_call_graph_edge(caller: CodeChunk, callee_name: str) -> CallGraph:
+    """Creates a directed edge in the call graph."""
+    return CallGraph.get_or_create(caller=caller, callee=callee_name)[0]
 
 
-def get_dependencies(code_chunk: CodeChunk) -> Optional[list[CodeChunk]]:
-    return (
-        CodeChunk.select()
-        .join(CallGraph)
-        .where(
-            CodeChunk.name.in_(CallGraph.select().where(CallGraph.caller == code_chunk))
-        )
+def get_dependencies(code_chunk: CodeChunk) -> List[CodeChunk]:
+    """
+    Retrieves all code chunks that the given code_chunk calls (its callees).
+    """
+    callee_names_query = CallGraph.select(CallGraph.callee).where(
+        CallGraph.caller == code_chunk
     )
+    callee_names = [edge.callee for edge in callee_names_query]
+
+    if not callee_names:
+        return []
+
+    return list(CodeChunk.select().where(CodeChunk.name.in_(callee_names)))
+
+
+def get_dependents(code_chunk: CodeChunk) -> List[CodeChunk]:
+    """
+    Retrieves all code chunks that call the given code_chunk (its callers).
+    """
+    return list(
+        CodeChunk.select()
+        .join(CallGraph, on=(CallGraph.caller == CodeChunk.id))
+        .where(CallGraph.callee == code_chunk.name)
+    )
+
+
+def get_all_code_chunks() -> List[CodeChunk]:
+    """Retrieves all code chunks from the database."""
+    return list(CodeChunk.select())

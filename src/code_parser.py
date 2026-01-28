@@ -34,9 +34,33 @@ class CodeStructureVisitor(ast.NodeVisitor):
         self.current_class: Optional[str] = None
         self.nodes_to_skip: set[ast.AST] = set()
         self.builtins_set = set(dir(builtins))
+        self.aliases: dict[str, str] = {}  # to track imported aliases
 
     def _get_code_segment(self, node) -> str:
         return ast.get_source_segment(self.source_code, node) or ""
+    def visit_Import(self, node):
+        """
+        Handles: import numpy as np
+        """
+        for alias in node.names:
+            # name='numpy', asname='np'
+            # If no asname, alias is the name itself (import math -> math)
+            local_name = alias.asname or alias.name
+            self.aliases[local_name] = alias.name
+        self.generic_visit(node)
+
+    def visit_ImportFrom(self, node):
+        """
+        Handles: from utils import clean_text as clean
+        """
+        module = node.module or ""
+        for alias in node.names:
+            # alias.name = 'clean_text'
+            # alias.asname = 'clean'
+            full_name = f"{module}.{alias.name}" if module else alias.name
+            local_name = alias.asname or alias.name
+            self.aliases[local_name] = full_name
+        self.generic_visit(node)
 
     def _extract_calls(self, node: ast.AST) -> list[str]:
         """
@@ -56,10 +80,13 @@ class CodeStructureVisitor(ast.NodeVisitor):
     def _resolve_name(self, node) -> Optional[str]:
         """Recursive helper to handle foo.bar.baz()"""
         if isinstance(node, ast.Name):
-            return node.id
+            return self.aliases.get(node.id, node.id)
         elif isinstance(node, ast.Attribute):
             value = self._resolve_name(node.value)
-            return f"{value}.{node.attr}" if value else node.attr
+            
+            if value:
+                return f"{value}.{node.attr}"
+            return node.attr
         return None
 
     def visit_FunctionDef(self, node):

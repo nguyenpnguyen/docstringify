@@ -1,20 +1,19 @@
 import os
 import logging
 
+from dataclasses import dataclass
 from typing import Optional
 from pydantic import BaseModel, Field
 
-from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.embeddings import Embeddings
 from langchain_core.documents import Document
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
+from langchain_ollama import ChatOllama
 
 # Use LangGraph for precise control over the "retrieve -> generate" flow
 from langgraph.graph import StateGraph, END
 
 # Import your custom modules (Assumed to exist based on your snippet)
-from src.loader import load_llm, load_embeddings
 from src.retrievers import retrieve_relevant_docs
 
 logging.basicConfig(
@@ -28,16 +27,25 @@ logger = logging.getLogger(__name__)
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_name = os.path.basename(current_dir)
 
-config = {
-    "llm_id": "qwen3:4b-instruct",
-    "embed_id": "qwen3-embedding:0.6b",
-}
+@dataclass
+class LLMConfig:
+    llm_id: str = "qwen3:4b-instruct"
+    temperature: float = 0.2
+    num_ctx: int = 8192
+
+llm_cfg = LLMConfig()
 
 # --- Initialization ---
 # Load LLM and Embeddings
-llm: Optional[BaseChatModel] = load_llm(model=config["llm_id"], temperature=0.2, num_ctx=8192)
-embeddings: Optional[Embeddings] = load_embeddings(model=config["embed_id"])
-
+try:
+    llm = ChatOllama(
+        model=llm_cfg.llm_id,
+        temperature=llm_cfg.temperature,
+        validate_model_on_init=True,
+        num_ctx=llm_cfg.num_ctx,
+    )
+except Exception as e:
+    logger.error(f"Error loading LLM '{llm_cfg.llm_id}': {e}")
 
 # --- Schemas ---
 
