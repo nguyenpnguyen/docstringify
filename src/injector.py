@@ -62,7 +62,7 @@ def load_and_split_repository(repo_path: str) -> list[Document]:
 
     return final_docs
 
-def index_codebase(documents: list[Document]) -> list[CodeChunk]:
+def index_documents(documents: list[Document]) -> list[CodeChunk]:
     with ThreadPoolExecutor(max_workers=20) as executor:
         results: list[CodeChunk] = list(executor.map(get_or_create_code_chunk, documents))
 
