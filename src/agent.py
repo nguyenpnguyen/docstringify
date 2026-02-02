@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 
 from langchain_core.documents import Document
 from langchain_core.messages import SystemMessage, HumanMessage
-from langchain_core.runnables import RunnableConfig
 from langchain_ollama import ChatOllama
 
 # Use LangGraph for precise control over the "retrieve -> generate" flow
@@ -15,6 +14,7 @@ from langgraph.graph import StateGraph, END
 
 # Import your custom modules (Assumed to exist based on your snippet)
 from src.retrievers import retrieve_relevant_docs
+from src.injector import index_documents, load_and_split_repository
 
 logging.basicConfig(
     level=logging.INFO,
@@ -36,7 +36,6 @@ class LLMConfig:
 llm_cfg = LLMConfig()
 
 # --- Initialization ---
-# Load LLM and Embeddings
 try:
     llm = ChatOllama(
         model=llm_cfg.llm_id,
@@ -56,8 +55,7 @@ class ResponseFormat(BaseModel):
 
 class AgentState(BaseModel):
     """The state of the agent execution pipeline."""
-    code_snippet: str
-    path: str
+    code_snippet: Document 
     context: list[Document] = Field(default_factory=list)
     docstring: Optional[str] = None
 
@@ -76,24 +74,31 @@ Output ONLY the docstring string.
 
 # --- Nodes ---
 
-def retrieve_node(state: AgentState, config: RunnableConfig):
+def inject_node(state: AgentState):
+    repo_path = os.path.dirname(current_dir)
+    docs = load_and_split_repository(repo_path)
+
+    return index_documents(docs)
+
+
+def retrieve_node(state: AgentState):
     """
     Node 1: Deterministic Retrieval
     Calls the python function directly to get context.
     """
-    code, path = state.code_snippet, state.path
+    code = state.code_snippet
 
-    docs = retrieve_relevant_docs(code, path)
+    docs = retrieve_relevant_docs(code.metadata["name"], code.metadata["path"])
 
     return {"context": docs}
 
 
-def generate_node(state: AgentState, config: RunnableConfig):
+def generate_node(state: AgentState):
     """
     Node 2: Generation
     Uses LLM with Structured Output to generate the docstring.
     """
-    code, path = state.code_snippet, state.path
+    code = state.code_snippet
     context_docs = state.context
 
     # Format context for the prompt
@@ -129,4 +134,4 @@ workflow.add_edge("retrieve", "generate")
 workflow.add_edge("generate", END)
 
 # Compile the agent
-agent = workflow.compile()
+app = workflow.compile()
