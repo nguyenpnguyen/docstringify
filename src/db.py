@@ -58,10 +58,9 @@ def get_or_create_code_chunk(code_chunk_doc: Document) -> tuple[CodeChunk, bool]
     )
 
 
-def select_code_chunk_by_name(name: str) -> CodeChunk:
+def select_code_chunk_by_name(name: str, path) -> CodeChunk:
     """Selects a code chunk by its unique name."""
-    return CodeChunk.get(CodeChunk.name == name)
-
+    return CodeChunk.get((CodeChunk.name == name) & (CodeChunk.path == path))
 
 def update_code_chunk_docstring(code_chunk: CodeChunk, docstring: str):
     """Updates the docstring of a specific code chunk."""

@@ -16,7 +16,7 @@ def test_build_call_graph(populated_db):
     build_call_graph()
 
     # Retrieve the caller chunk from the DB
-    caller_chunk = select_code_chunk_by_name("func_a")
+    caller_chunk = select_code_chunk_by_name("func_a", "test.py")
 
     # Check its outgoing calls (dependencies)
     dependencies = get_dependencies(caller_chunk)
@@ -24,7 +24,7 @@ def test_build_call_graph(populated_db):
     assert dependencies[0].name == "func_b"
 
     # Now check the other direction for the callee
-    callee_chunk = select_code_chunk_by_name("func_b")
+    callee_chunk = select_code_chunk_by_name("func_b", "test.py")
     dependents = get_dependents(callee_chunk)
     assert len(dependents) == 1
     assert dependents[0].name == "func_a"
@@ -37,9 +37,9 @@ def test_get_dependencies(populated_db):
     # First, we need to manually build the graph for this test
     build_call_graph()
 
-    func_a = select_code_chunk_by_name("func_a")
-    func_b = select_code_chunk_by_name("func_b")
-    func_c = select_code_chunk_by_name("func_c")
+    func_a = select_code_chunk_by_name("func_a", "test.py")
+    func_b = select_code_chunk_by_name("func_b", "test.py")
+    func_c = select_code_chunk_by_name("func_c", "utils.py")
 
     # func_a calls func_b
     deps_a = get_dependencies(func_a)
@@ -61,9 +61,9 @@ def test_get_dependents(populated_db):
     # First, we need to manually build the graph for this test
     build_call_graph()
 
-    func_a = select_code_chunk_by_name("func_a")
-    func_b = select_code_chunk_by_name("func_b")
-    func_c = select_code_chunk_by_name("func_c")
+    func_a = select_code_chunk_by_name("func_a", "test.py")
+    func_b = select_code_chunk_by_name("func_b", "test.py")
+    func_c = select_code_chunk_by_name("func_c", "utils.py")
 
     # func_b is called by func_a
     dependents_b = get_dependents(func_b)
@@ -86,7 +86,7 @@ def test_code_chunk_creation(populated_db):
     assert chunks.count() == 3
 
     # Verify one of the chunks
-    func_a = select_code_chunk_by_name("func_a")
+    func_a = select_code_chunk_by_name("func_a", "test.py")
     assert func_a.path == "test.py"
     assert func_a.parent_class == "MyClass"
     assert '["func_b"]' in func_a.calls

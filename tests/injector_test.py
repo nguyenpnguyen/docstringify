@@ -40,7 +40,7 @@ def test_index_documents(test_db):
 
     # 3. Verify a specific relationship
     # In src/db.py, build_call_graph calls get_all_code_chunks, json.loads, and create_call_graph_edge
-    caller = select_code_chunk_by_name("build_call_graph")
+    caller = select_code_chunk_by_name("build_call_graph", "src/db.py")
     dependencies = get_dependencies(caller)
     
     dep_names = {dep.name for dep in dependencies}
