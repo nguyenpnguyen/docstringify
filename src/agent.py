@@ -57,6 +57,7 @@ class ResponseFormat(BaseModel):
 class AgentState(BaseModel):
     """The state of the agent execution pipeline."""
     code_snippet: str
+    path: str
     context: list[Document] = Field(default_factory=list)
     docstring: Optional[str] = None
 
@@ -80,9 +81,9 @@ def retrieve_node(state: AgentState, config: RunnableConfig):
     Node 1: Deterministic Retrieval
     Calls the python function directly to get context.
     """
-    code = state.code_snippet
+    code, path = state.code_snippet, state.path
 
-    docs = retrieve_relevant_docs(code)
+    docs = retrieve_relevant_docs(code, path)
 
     return {"context": docs}
 
@@ -92,7 +93,7 @@ def generate_node(state: AgentState, config: RunnableConfig):
     Node 2: Generation
     Uses LLM with Structured Output to generate the docstring.
     """
-    code = state.code_snippet
+    code, path = state.code_snippet, state.path
     context_docs = state.context
 
     # Format context for the prompt

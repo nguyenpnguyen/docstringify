@@ -42,7 +42,7 @@ def test_dependency_retriever_finds_dependencies():
     from src.retrievers import dependency_retriever
 
     # In conftest.py, func_a is defined as calling func_b.
-    dependencies = dependency_retriever("def func_a(self):\n    \"\"\"Doc A\"\"\"\n    self.func_b()")
+    dependencies = dependency_retriever("func_a", "test.py")
 
     assert isinstance(dependencies, list)
     assert len(dependencies) == 1
@@ -58,7 +58,7 @@ def test_usage_retriever_finds_dependents():
     from src.retrievers import usage_retriever
 
     # func_a is called by func_d
-    dependents = usage_retriever("def func_a(self):\n    \"\"\"Doc A\"\"\"\n    self.func_b()")
+    dependents = usage_retriever("func_a", "test.py")
 
     assert isinstance(dependents, list)
     assert len(dependents) == 1
@@ -77,7 +77,7 @@ def test_retrieve_relevant_docs_combines_dependencies_and_usage():
     # - Dependencies: [func_b]
     # - Dependents: [func_d]
     # Expected result is a list containing documents for func_b and func_d.
-    results = retrieve_relevant_docs("func_a")
+    results = retrieve_relevant_docs("func_a", "test.py")
 
     assert isinstance(results, list)
     assert len(results) == 2
@@ -95,7 +95,7 @@ def test_retrieve_relevant_docs_handles_one_way_relations():
     # For 'func_b':
     # - Dependencies: []
     # - Dependents: [func_a]
-    results = retrieve_relevant_docs("func_b")
+    results = retrieve_relevant_docs("func_b", "test.py")
     assert len(results) == 1
     assert results[0].metadata["name"] == "func_a"
 
@@ -106,7 +106,7 @@ def test_retrieve_relevant_docs_handles_no_relations():
     from src.retrievers import retrieve_relevant_docs
     
     # func_c has no dependencies and no dependents in the test data
-    results = retrieve_relevant_docs("func_c")
+    results = retrieve_relevant_docs("func_c", "utils.py")
     assert len(results) == 0
 
 def test_retrieve_relevant_docs_deduplicates_results():
@@ -129,7 +129,7 @@ def test_retrieve_relevant_docs_deduplicates_results():
         mock_dep.return_value = [doc_a]
         mock_usage.return_value = [doc_a, doc_b]
 
-        results = retrieve_relevant_docs("func_x")
+        results = retrieve_relevant_docs("func_x", "some_path.py")
         
         # Should contain doc_a and doc_b, with doc_a appearing only once.
         assert len(results) == 2

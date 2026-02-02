@@ -13,8 +13,38 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = 1500
+CHUNK_SIZE = 2000
 CHUNK_OVERLAP = 200
+
+def parse_and_split_file(full_path: str, splitter) -> list[Document]:
+    """
+    Parses a single Python file to find logical blocks,
+    and then splits them if they exceed chunk limits.
+    """
+    try:
+        with open(full_path, "r", encoding="utf-8") as f:
+            file_content = f.read()
+
+        # 1. Parse Structure (AST Phase)
+        # This creates "Logical Chunks" (Whole functions/classes)
+        visitor = CodeStructureVisitor(file_content, full_path)
+        try:
+            parse_code_structure(visitor, file_content, full_path)
+        except SyntaxError:
+            logger.error(f"Syntax Error parsing {full_path}, skipping AST.")
+            return []
+
+        # 2. Text Split (Size Phase)
+        # If a function is > 1500 chars, this splits it.
+        # Metadata is preserved from the AST phase!
+        if visitor.raw_documents:
+            return split_code_by_length(splitter, visitor)
+
+    except Exception as e:
+        logger.error(f"Error processing {full_path}: {e}")
+
+    return []
+
 
 def load_and_split_repository(repo_path: str) -> list[Document]:
     """
@@ -35,27 +65,7 @@ def load_and_split_repository(repo_path: str) -> list[Document]:
                 if "venv" in full_path or "/." in full_path:
                     continue
 
-                try:
-                    with open(full_path, "r", encoding="utf-8") as f:
-                        file_content = f.read()
-
-                    # 1. Parse Structure (AST Phase)
-                    # This creates "Logical Chunks" (Whole functions/classes)
-                    visitor = CodeStructureVisitor(file_content, full_path)
-                    try:
-                        parse_code_structure(visitor, file_content, full_path)
-                    except SyntaxError:
-                        logger.error(f"Syntax Error parsing {full_path}, skipping AST.")
-                        continue
-
-                    # 2. Text Split (Size Phase)
-                    # If a function is > 1500 chars, this splits it.
-                    # Metadata is preserved from the AST phase!
-                    if visitor.raw_documents:
-                        final_docs.extend(split_code_by_length(splitter, visitor))
-
-                except Exception as e:
-                    logger.error(f"Error processing {full_path}: {e}")
+                final_docs.extend(parse_and_split_file(full_path, splitter))
 
     logger.debug(f"processed {len(final_docs)} code chunks.")
 
