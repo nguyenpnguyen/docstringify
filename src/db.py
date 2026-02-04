@@ -3,7 +3,7 @@ from peewee import *
 from langchain_core.documents import Document
 
 # Use a file-based database for persistence
-DB_PATH = ":memory:"
+DB_PATH = "autodoc.db"
 db = SqliteDatabase(DB_PATH, pragmas={"journal_mode": "wal"})
 
 
@@ -58,9 +58,29 @@ def get_or_create_code_chunk(code_chunk_doc: Document) -> tuple[CodeChunk, bool]
     )
 
 
+def bulk_insert_chunks(chunks: list[Document]):
+    """
+    Efficiently inserts or updates multiple code chunks.
+    """
+    with db.atomic():
+        for chunk_doc in chunks:
+            get_or_create_code_chunk(chunk_doc)
+
+
+def get_undocumented_chunks() -> list[CodeChunk]:
+    """
+    Retrieves all code chunks that do not have a docstring.
+    """
+    return list(CodeChunk.select().where(CodeChunk.docstring.is_null()))
+
 def select_code_chunk_by_name(name: str, path) -> CodeChunk:
     """Selects a code chunk by its unique name."""
     return CodeChunk.get((CodeChunk.name == name) & (CodeChunk.path == path))
+
+
+def select_code_chunk_by_id(chunk_id: int) -> CodeChunk:
+    """Selects a code chunk by its unique id."""
+    return CodeChunk.get(CodeChunk.id == chunk_id)
 
 def update_code_chunk_docstring(code_chunk: CodeChunk, docstring: str):
     """Updates the docstring of a specific code chunk."""

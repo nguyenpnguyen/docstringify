@@ -118,16 +118,25 @@ def test_retrieve_relevant_docs_deduplicates_results():
     # We will mock the underlying retrievers for simplicity.
     from src.retrievers import retrieve_relevant_docs
     from unittest.mock import patch
+    from src.db import CodeChunk
 
     doc_a = Document(page_content="def func_a(): pass", metadata={"name": "func_a"})
     doc_b = Document(page_content="def func_b(): pass", metadata={"name": "func_b"})
+    
+    chunk_a = CodeChunk(name="func_a", content="def func_a(): pass", path="file_a.py")
+    chunk_b = CodeChunk(name="func_b", content="def func_b(): pass", path="file_b.py")
 
-    with patch('src.retrievers.dependency_retriever') as mock_dep, \
-         patch('src.retrievers.usage_retriever') as mock_usage:
+
+    with patch('src.retrievers.select_code_chunk_by_name') as mock_select, \
+         patch('src.retrievers.get_dependencies') as mock_get_deps, \
+         patch('src.retrievers.get_dependents') as mock_get_deps_on:
         
         # Simulate func_x calling func_a, and being called by func_b and func_a
-        mock_dep.return_value = [doc_a]
-        mock_usage.return_value = [doc_a, doc_b]
+        mock_chunk = CodeChunk(name="func_x", path="some_path.py", calls='["func_a"]')
+        mock_select.return_value = mock_chunk
+        
+        mock_get_deps.return_value = [chunk_a]
+        mock_get_deps_on.return_value = [chunk_a, chunk_b]
 
         results = retrieve_relevant_docs("func_x", "some_path.py")
         
