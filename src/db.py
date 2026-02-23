@@ -19,6 +19,7 @@ class CodeChunk(BaseModel):
     content = TextField()
     parent_class = TextField(null=True)
     line_number = IntegerField()
+    body_start_line = IntegerField(null=True)
     docstring = TextField(null=True)
     calls = TextField(default="[]")  # Store as JSON string
 
@@ -52,6 +53,7 @@ def get_or_create_code_chunk(code_chunk_doc: Document) -> tuple[CodeChunk, bool]
             "content": code_chunk_doc.page_content,
             "parent_class": code_chunk_doc.metadata.get("parent_class"),
             "line_number": code_chunk_doc.metadata["line_number"],
+            "body_start_line": code_chunk_doc.metadata.get("body_start_line"),
             "docstring": code_chunk_doc.metadata.get("docstring"),
             "calls": json.dumps(code_chunk_doc.metadata.get("calls", [])),
         },

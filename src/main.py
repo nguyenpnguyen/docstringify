@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 import typer
-from src.agent import agent, AgentState
+from agent import agent, AgentState
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,10 +27,11 @@ def docstringify(project_path: Path = typer.Argument(..., exists=True, file_okay
         current_code=None,
         retrieved_context="",
         generated_docstring=None,
+        file_docstring_changes={},
     )
     
     logger.info("Starting the docstring generation process...")
-    agent.invoke(initial_state)
+    agent.invoke(initial_state, config={"recursion_limit": 50})
     logger.info("Docstring generation process finished.")
 
 

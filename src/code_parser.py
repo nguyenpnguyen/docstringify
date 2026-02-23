@@ -22,6 +22,7 @@ class CodeChunkMetadata(BaseModel):
     type: str  # e.g., "function", "class_definition", "method"
     parent_class: Optional[str] = None  # For methods, the class they belong
     line_number: Optional[int] = None
+    body_start_line: Optional[int] = None
     docstring: Optional[str] = None
     calls: list[str] = Field(default_factory=list) # store function calls in code chunk
 
@@ -108,12 +109,15 @@ class CodeStructureVisitor(ast.NodeVisitor):
 
         calls = self._extract_calls(node)
 
+        body_start_line = node.body[0].lineno if node.body else node.lineno
+
         metadata = CodeChunkMetadata(
             path=self.file_path,
             name=node.name,
             type=actual_type,
             parent_class=self.current_class,
             line_number=node.lineno,
+            body_start_line=body_start_line,
             docstring=docstring,
             calls=calls
         )
@@ -164,11 +168,14 @@ class CodeStructureVisitor(ast.NodeVisitor):
 
         docstring = ast.get_docstring(node)
 
+        body_start_line = node.body[0].lineno if node.body else node.lineno
+
         metadata = CodeChunkMetadata(
             path=self.file_path,
             name=node.name,
             type="class_definition",
             line_number=node.lineno,
+            body_start_line=body_start_line,
             docstring=docstring,
             calls=class_calls # Add __init__ calls here
         )

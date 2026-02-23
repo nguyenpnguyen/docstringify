@@ -61,6 +61,7 @@ def long_function():
 FILE_PATH = "test_file.py"
 
 def test_code_structure_visitor_functions():
+    """Test function to verify the correct parsing and extraction of code structure from sample functions using the CodeStructureVisitor class. Ensures that each function is properly identified, its metadata (name, type, docstring) is correctly extracted, and the raw documents are generated as expected."""
     visitor = CodeStructureVisitor(CODE_SAMPLE_FUNCTIONS, FILE_PATH)
     parse_code_structure(visitor, CODE_SAMPLE_FUNCTIONS, FILE_PATH)
 
@@ -109,7 +110,6 @@ def test_code_structure_visitor_class():
     assert prop_doc.metadata["docstring"] == "Property doc."
     assert prop_doc.metadata["parent_class"] == "MyClass"
 
-
 def test_code_structure_visitor_extracts_calls():
     visitor = CodeStructureVisitor(CODE_SAMPLE_WITH_CALLS, FILE_PATH)
     parse_code_structure(visitor, CODE_SAMPLE_WITH_CALLS, FILE_PATH)
@@ -118,15 +118,19 @@ def test_code_structure_visitor_extracts_calls():
     func_one_doc = visitor.raw_documents[0]
     func_two_doc = visitor.raw_documents[1]
 
+
+    """Test that parsing malformed code with syntax error raises a SyntaxError."""
     assert func_one_doc.metadata["name"] == "func_one"
     func_one_calls = set(func_one_doc.metadata["calls"])
     # 'print' is a builtin, so it should be excluded.
     # 'np.array' becomes 'numpy.array' due to alias tracking.
+        """Test that the get_splitter function returns a PythonCodeTextSplitter with the correct chunk size and overlap."""
     # 'func_two' is a local call.
     assert func_one_calls == {"numpy.array", "func_two"}
 
     assert func_two_doc.metadata["name"] == "func_two"
     func_two_calls = set(func_two_doc.metadata["calls"])
+        """Test that code documents are split by length into chunks of specified size, preserving metadata and ensuring content integrity."""
     # 'path.exists' becomes 'os.path.exists'.
     assert func_two_calls == {"os.path.exists"}
 
