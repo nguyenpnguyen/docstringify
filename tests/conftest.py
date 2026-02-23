@@ -2,7 +2,7 @@ import pytest
 from peewee import SqliteDatabase
 from langchain_core.documents import Document
 
-from src.db import (
+from docstringify.db import (
     CodeChunk,
     CallGraph,
     get_or_create_code_chunk,

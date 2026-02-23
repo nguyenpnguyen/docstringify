@@ -63,19 +63,18 @@ class Checkpoint:
 
     def get(self, name: str) -> torch.Tensor:
         """
-        Retrieve a tensor by name, handling both MoE block/scale weights and other tensors.
+        Retrieve a tensor by name, handling both MoE weights (in block-based MXFP4 format) and other weights/biases.
         
         Args:
-            name (str): The name of the tensor to retrieve. This name is used to look up the corresponding tensor in the parameter map.
+            name (str): The name of the tensor to retrieve. This name is used to look up the actual tensor name in the PARAM_NAME_MAP.
         
         Returns:
-            torch.Tensor: The requested tensor. For MoE weights, it is returned in MXFP4 format with bfloat16 dtype; for other weights and biases, it is returned as a standard tensor.
+            torch.Tensor: The requested tensor. For MoE weights, it is returned in MXFP4 format with bfloat16 dtype; for other weights/biases, it is returned as a standard tensor.
         
         Note:
-            - The function uses a match expression to determine the type of parameter being accessed.
-            - If the name matches a key in PARAM_NAME_MAP, it is split into (blocks_name, scales_name) for MoE weights.
-            - Otherwise, it treats the name as a direct tensor name for non-MoE parameters.
-            - The actual tensor retrieval is delegated to either _get_mxfp4_tensor or _get_tensor.
+            - If the name is found in PARAM_NAME_MAP, it is matched against a tuple of (blocks_name, scales_name) for MoE weights.
+            - If the name is not found in PARAM_NAME_MAP, it is treated as a direct tensor name.
+            - The method uses a pattern-matching approach to distinguish between MoE weights and other tensors.
         """
 
         match PARAM_NAME_MAP.get(name, name):
@@ -98,7 +97,7 @@ class Checkpoint:
         
         Raises:
             AssertionError: If the tensor name is not found in the tensor name to file mapping.
-            Exception: If there is an error opening or reading the checkpoint file.
+            Exception: If there is an error opening or reading the tensor file (handled by safe_open).
         """
 
         assert name in self.tensor_name_to_file, f"Tensor {name} not found in checkpoint."
@@ -119,16 +118,16 @@ class Checkpoint:
         Internal function to convert FP4 blocks and scales tensors into a full tensor representation using lookup tables and exponentiation.
         
         Args:
-            blocks_name (str): Name of the tensor containing the FP4 block values in the checkpoint.
-            scales_name (str): Name of the tensor containing the scaling values in the checkpoint.
+            blocks_name (str): Name of the tensor containing the FP4 block data in the checkpoint.
+            scales_name (str): Name of the tensor containing the scaling factors (offset from 127) in the checkpoint.
             dtype (torch.dtype, optional): Data type for the output tensor. Defaults to torch.bfloat16.
-            rows_per_chunk (int, optional): Number of rows to process in each chunk to optimize memory access. Defaults to 16384 * 516.
+            rows_per_chunk (int, optional): Number of rows to process in each chunk to optimize memory and performance. Defaults to 16384 * 516.
         
         Returns:
-            torch.Tensor: A tensor of shape (*prefix_shape, G, B * 2) reshaped to (*prefix_shape, G * B * 2), where each FP4 value is expanded into two 4-bit values (low and high nibbles) with an exponent applied.
+            torch.Tensor: A reshaped tensor of shape (*prefix_shape, G * B * 2) where each FP4 value is expanded into two 4-bit values (low and high nibbles) with their corresponding exponent applied.
         
         Raises:
-            AssertionError: If either blocks_name or scales_name is not found in the tensor name to file mapping, or if the shapes of blocks and scales do not match.
+            AssertionError: If either blocks_name or scales_name is not found in the checkpoint's tensor mapping, or if the shapes of blocks and scales do not match.
         """
 
         assert blocks_name in self.tensor_name_to_file, (
@@ -176,24 +175,25 @@ class Checkpoint:
 
     def _get_mxfp4_tensor_copy(self, blocks_name: str, scales_name: str, dtype: torch.dtype = torch.bfloat16):
         """
-        Internal helper method to convert MXFP4 quantized tensor blocks and scales into a floating-point tensor of the specified dtype.
+        Internal helper method to convert MXFP4 quantized tensor blocks and scales into a floating-point tensor of specified dtype.
         
         Args:
-            blocks_name: Name of the tensor storing the MXFP4 block data (encoded as 4-bit integers).
-            scales_name: Name of the tensor storing the per-block scale values.
-            dtype: Target floating-point dtype for the output tensor (default is bfloat16).
+            blocks_name: Name of the tensor storing the MXFP4 block data (low and high nibbles).
+            scales_name: Name of the tensor storing the quantization scales.
+            dtype: Target data type for the output tensor (default is torch.bfloat16).
         
         Returns:
-            A tensor of the specified dtype, where each element is reconstructed from the MXFP4 encoding using the provided blocks and scales.
+            A tensor of the specified dtype, where each element represents the decoded floating-point value
+            from the MXFP4 quantized format using the provided blocks and scales.
         
         Note:
             This method performs the following steps:
-            - Loads the block data and splits each 8-bit value into low and high nibbles.
-            - Interleaves the nibbles to form a 16-bit representation.
-            - Loads the scale values, converts them to int32, and subtracts 127 (bias correction).
-            - Uses a lookup table (FP4_VALUES) to convert the 4-bit block values into floating-point numbers.
-            - Applies the scale to each block value via ldexp (multiply by 2^scale).
-            - Reshapes the resulting tensor to match the original shape (excluding the last two dimensions).
+            - Loads the MXFP4 block data and splits each 8-bit value into low (nibbles 0-3) and high (nibbles 4-7) nibbles.
+            - Interleaves the low and high nibbles to form a 16-bit value.
+            - Loads the scale values, converts them to int32, and subtracts a bias of 127.
+            - Uses a lookup table (FP4_VALUES) to map the MXFP4 block values to floating-point values.
+            - Applies the scale via ldexp (multiply by 2^scale) to reconstruct the original floating-point values.
+            - Reshapes the output tensor to match the original shape, excluding the last two dimensions.
         """
 
         loaded_blocks = self._get_tensor(blocks_name)

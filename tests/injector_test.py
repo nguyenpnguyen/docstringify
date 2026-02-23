@@ -1,6 +1,6 @@
 import pytest
-from src.injector import index_documents, load_and_split_repository
-from src.db import CodeChunk, CallGraph, select_code_chunk_by_name, get_dependencies
+from docstringify.injector import index_documents, load_and_split_repository
+from docstringify.db import CodeChunk, CallGraph, select_code_chunk_by_name, get_dependencies
 
 
 @pytest.fixture

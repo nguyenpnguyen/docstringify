@@ -5,10 +5,10 @@ import torch.distributed as dist
 
 def suppress_output(rank):
     """
-    Suppresses output from print statements in distributed training, such that only the root process (rank 0) prints messages, and non-root processes do not print anything unless a 'force' flag is specified.
+    Suppresses output from print statements in distributed training, so that only the root process (rank 0) prints messages, and other processes do not. Optionally, a message can be forced to be printed for all ranks using the 'force' keyword argument.
     
     Args:
-        rank (int): The rank of the current process in the distributed training setup. Used to determine whether to suppress or allow output.
+        rank (int): The rank of the current process in the distributed training setup. Used to determine whether to print output or suppress it.
     """
 
     import builtins as __builtin__
@@ -31,17 +31,12 @@ def init_distributed() -> torch.device:
     This function sets up a distributed training environment using PyTorch's distributed module.
     It retrieves the world size and rank from environment variables, initializes the distributed
     process group, sets the current CUDA device to the specified rank, and performs a warm-up
-    operation to reduce initial latency in NCCL communication.
-    
-    Args:
-        None
+    operation to reduce initial latency in NCCL communication. It also configures output
+    suppression such that only the root process (rank 0) prints messages, unless explicitly
+    forced.
     
     Returns:
-        torch.device: A CUDA device object corresponding to the current process rank.
-    
-    Raises:
-        RuntimeError: If the environment variables WORLD_SIZE or RANK are not set or invalid.
-        RuntimeError: If NCCL initialization fails or CUDA is not available.
+        torch.device: A CUDA device object corresponding to the current process's rank.
     """
 
     world_size = int(os.environ.get("WORLD_SIZE", 1))

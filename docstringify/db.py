@@ -2,9 +2,8 @@ import json
 from peewee import *
 from langchain_core.documents import Document
 
-# Use a file-based database for persistence
-DB_PATH = "autodoc.db"
-db = SqliteDatabase(DB_PATH, pragmas={"journal_mode": "wal"})
+# Use a Proxy for dynamic database initialization
+db = Proxy()
 
 
 class BaseModel(Model):
@@ -37,8 +36,10 @@ class CallGraph(BaseModel):
         primary_key = CompositeKey("caller", "callee")
 
 
-def init_db():
+def init_db(db_path: str):
     """Initializes the database and creates tables."""
+    real_db = SqliteDatabase(db_path, pragmas={"journal_mode": "wal"})
+    db.initialize(real_db)
     with db:
         db.create_tables([CodeChunk, CallGraph])
 

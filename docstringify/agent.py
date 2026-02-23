@@ -7,9 +7,9 @@ from langgraph.graph import StateGraph, END
 from langchain_core.messages import SystemMessage, HumanMessage
 import re
 from langchain_ollama import ChatOllama
-from src.db import init_db, get_undocumented_chunks, bulk_insert_chunks, build_call_graph, select_code_chunk_by_id, update_code_chunk_docstring
-from src.retrievers import retrieve_relevant_docs
-from src.injector import load_and_split_repository
+from docstringify.db import init_db, get_undocumented_chunks, bulk_insert_chunks, build_call_graph, select_code_chunk_by_id, update_code_chunk_docstring, get_all_code_chunks
+from docstringify.retrievers import retrieve_relevant_docs
+from docstringify.injector import load_and_split_repository
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,7 +39,7 @@ try:
         num_ctx=llm_cfg.num_ctx,
     )
 except Exception as e:
-    logger.error(f"Error loading LLM '{llm_cfg.lll_id}': {e}")
+    logger.error(f"Error loading LLM '{llm_cfg.llm_id}': {e}")
 
 # --- Schemas ---
 class AgentState(TypedDict):
@@ -70,23 +70,32 @@ Your output should be solely the text that would appear *between* the opening an
 # --- Nodes ---
 
 def builder_node(state: AgentState):
-    logger.info("Executing builder_node...")
+    logger.info(">>> Executing builder_node...")
     """
     Node A: Builder
-    Checks if the database exists. If not, it parses the repository,
-    populates the database, and builds the call graph. Then, it queries
-    the database for undocumented functions and populates the agent's queue.
+    Checks if the database is initialized and has entries. If not, it parses the
+    repository, populates the database, and builds the call graph. Then, it
+    queries the database for undocumented functions and populates the agent's queue.
     """
     db_path = state["db_path"]
-    if not os.path.exists(db_path):
-        # Database does not exist, so we need to build it.
-        init_db()
-        
+    logger.info(f">>> db_path: {db_path}")
+    
+    # Ensure database is initialized
+    init_db(db_path)
+    
+    # Check if the database has any chunks; if not, populate it
+    all_chunks = get_all_code_chunks()
+    logger.info(f">>> Initial chunks count: {len(all_chunks)}")
+    
+    if not all_chunks:
         # Infer the repository path from the db_path location, assuming it's in the repo root
         repo_path = os.path.dirname(os.path.abspath(db_path))
+        logger.info(f">>> repo_path: {repo_path}")
         
+        logger.info(f"Indexing repository at {repo_path}...")
         # Load and parse the repository content
         docs = load_and_split_repository(repo_path)
+        logger.info(f">>> Docs found during indexing: {len(docs)}")
         
         # Insert the parsed documents into the database
         bulk_insert_chunks(docs)
@@ -96,13 +105,14 @@ def builder_node(state: AgentState):
 
     # Query for undocumented functions to populate the queue
     undocumented_chunks = get_undocumented_chunks()
+    logger.info(f">>> Undocumented chunks found: {len(undocumented_chunks)}")
     queue = [chunk.id for chunk in undocumented_chunks]
     
     return {"queue": queue}
 
 
 def dispatcher_node(state: AgentState):
-    logger.info("Executing dispatcher_node...")
+    logger.info(">>> Executing dispatcher_node...")
     """
     Node B: Dispatcher
     Checks the queue of undocumented functions. If the queue is not empty,
@@ -110,11 +120,14 @@ def dispatcher_node(state: AgentState):
     and updates the agent's state. If the queue is empty, it signals the end.
     """
     queue = state["queue"]
+    logger.info(f">>> Queue size: {len(queue)}")
     if not queue:
+        logger.info(">>> Queue is empty, finishing.")
         return {"current_job_id": None, "current_code": None}
     
     # Pop the first ID from the queue
     job_id = queue.pop(0)
+    logger.info(f">>> Dispatching job_id: {job_id}")
     
     # Fetch the code chunk from the database
     code_chunk = select_code_chunk_by_id(job_id)

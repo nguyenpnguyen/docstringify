@@ -1,7 +1,7 @@
 import pytest
 from langchain_core.documents import Document
 
-from src.db import build_call_graph, get_or_create_code_chunk
+from docstringify.db import build_call_graph, get_or_create_code_chunk
 
 # A new document for a more complex test case for retrieve_relevant_docs
 DOC_D = Document(
@@ -39,7 +39,7 @@ def test_dependency_retriever_finds_dependencies():
     Tests that the dependency_retriever correctly returns documents
     that are called by the specified code chunk.
     """
-    from src.retrievers import dependency_retriever
+    from docstringify.retrievers import dependency_retriever
 
     # In conftest.py, func_a is defined as calling func_b.
     dependencies = dependency_retriever("func_a", "test.py")
@@ -55,7 +55,7 @@ def test_usage_retriever_finds_dependents():
     Tests that the usage_retriever correctly returns documents
     that call the specified code chunk.
     """
-    from src.retrievers import usage_retriever
+    from docstringify.retrievers import usage_retriever
 
     # func_a is called by func_d
     dependents = usage_retriever("func_a", "test.py")
@@ -71,7 +71,7 @@ def test_retrieve_relevant_docs_combines_dependencies_and_usage():
     Tests that retrieve_relevant_docs returns a combined and de-duplicated
     list of both dependencies (callees) and dependents (callers).
     """
-    from src.retrievers import retrieve_relevant_docs
+    from docstringify.retrievers import retrieve_relevant_docs
 
     # For 'func_a':
     # - Dependencies: [func_b]
@@ -90,7 +90,7 @@ def test_retrieve_relevant_docs_handles_one_way_relations():
     """
     Tests retrieve_relevant_docs for a chunk that has dependents but no dependencies.
     """
-    from src.retrievers import retrieve_relevant_docs
+    from docstringify.retrievers import retrieve_relevant_docs
     
     # For 'func_b':
     # - Dependencies: []
@@ -103,7 +103,7 @@ def test_retrieve_relevant_docs_handles_no_relations():
     """
     Tests retrieve_relevant_docs for a chunk with no connections.
     """
-    from src.retrievers import retrieve_relevant_docs
+    from docstringify.retrievers import retrieve_relevant_docs
     
     # func_c has no dependencies and no dependents in the test data
     results = retrieve_relevant_docs("func_c", "utils.py")
@@ -116,9 +116,9 @@ def test_retrieve_relevant_docs_deduplicates_results():
     """
     # This requires a new test setup for a circular dependency.
     # We will mock the underlying retrievers for simplicity.
-    from src.retrievers import retrieve_relevant_docs
+    from docstringify.retrievers import retrieve_relevant_docs
     from unittest.mock import patch
-    from src.db import CodeChunk
+    from docstringify.db import CodeChunk
 
     doc_a = Document(page_content="def func_a(): pass", metadata={"name": "func_a"})
     doc_b = Document(page_content="def func_b(): pass", metadata={"name": "func_b"})

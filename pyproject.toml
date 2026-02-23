@@ -1,6 +1,6 @@
 [project]
 name = "docstringify"
-version = "0.1.0"
+version = "0.1.1"
 description = "Docstringify"
 readme = "README.md"
 authors = [
@@ -26,7 +26,11 @@ dependencies = [
     "wandb>=0.23.1",
     "ragas>=0.4.2",
     "peewee>=3.19.0",
+    "langgraph",
 ]
+
+[project.scripts]
+docstringify = "docstringify.main:app"
 
 [tool.uv.sources]
 torch = [

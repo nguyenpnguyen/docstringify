@@ -1,5 +1,5 @@
 import pytest
-from src.code_parser import CodeStructureVisitor, parse_code_structure, split_code_by_length, get_splitter
+from docstringify.code_parser import CodeStructureVisitor, parse_code_structure, split_code_by_length, get_splitter
 from langchain_core.documents import Document
 from unittest.mock import MagicMock
 from langchain_text_splitters import PythonCodeTextSplitter

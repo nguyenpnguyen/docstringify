@@ -3,7 +3,7 @@ import os
 import tempfile
 from pathlib import Path
 from typer.testing import CliRunner
-from src.main import app
+from docstringify.main import app
 import pytest
 
 runner = CliRunner()

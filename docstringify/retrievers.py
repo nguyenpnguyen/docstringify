@@ -2,7 +2,7 @@ import json
 import logging
 
 from langchain_core.documents import Document
-from src.db import CodeChunk, select_code_chunk_by_name, get_dependencies, get_dependents
+from docstringify.db import CodeChunk, select_code_chunk_by_name, get_dependencies, get_dependents
 
 
 logging.basicConfig(

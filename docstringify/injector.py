@@ -3,8 +3,8 @@ import logging
 
 from langchain_core.documents import Document
 
-from src.code_parser import CodeStructureVisitor, parse_code_structure, split_code_by_length, get_splitter
-from src.db import get_or_create_code_chunk, build_call_graph, CodeChunk
+from docstringify.code_parser import CodeStructureVisitor, parse_code_structure, split_code_by_length, get_splitter
+from docstringify.db import get_or_create_code_chunk, build_call_graph, CodeChunk
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,15 +56,13 @@ def load_and_split_repository(repo_path: str) -> list[Document]:
 
     logger.debug(f"Scanning repository: {repo_path}...")
 
-    for root, _, files in os.walk(repo_path):
+    for root, dirs, files in os.walk(repo_path):
+        # Skip hidden directories and venv in-place
+        dirs[:] = [d for d in dirs if not d.startswith('.') and d != 'venv']
+        
         for file in files:
-            if file.endswith(".py"):
+            if file.endswith(".py") and not file.startswith('.'):
                 full_path = os.path.join(root, file)
-
-                # Skip virtual envs and hidden folders
-                if "venv" in full_path or "/." in full_path:
-                    continue
-
                 final_docs.extend(parse_and_split_file(full_path, splitter))
 
     logger.debug(f"processed {len(final_docs)} code chunks.")

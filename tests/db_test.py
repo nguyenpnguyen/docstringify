@@ -1,4 +1,4 @@
-from src.db import (
+from docstringify.db import (
     build_call_graph,
     get_dependencies,
     get_dependents,
