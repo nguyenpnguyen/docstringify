@@ -1,56 +1,36 @@
 import os
 import logging
-from dataclasses import dataclass
-from typing import TypedDict, List, Optional, Dict, Tuple
-
-from langgraph.graph import StateGraph, END
-from langchain_core.messages import SystemMessage, HumanMessage
 import re
+from typing import TypedDict, Optional
+
+from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_ollama import ChatOllama
-from docstringify.db import init_db, get_undocumented_chunks, bulk_insert_chunks, build_call_graph, select_code_chunk_by_id, update_code_chunk_docstring, get_all_code_chunks
+from docstringify.db import (
+    init_db,
+    get_undocumented_chunks,
+    bulk_insert_chunks,
+    build_call_graph,
+    select_code_chunk_by_id,
+    update_code_chunk_docstring,
+    get_all_code_chunks,
+)
 from docstringify.retrievers import retrieve_relevant_docs
 from docstringify.injector import load_and_split_repository
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+from docstringify.config import settings
+from docstringify.utils import get_indentation, find_docstring_boundaries
 
 logger = logging.getLogger(__name__)
 
-# --- Configuration ---
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_name = os.path.basename(current_dir)
-
-@dataclass
-class LLMConfig:
-    llm_id: str = "qwen3:4b-instruct"
-    temperature: float = 0.2
-    num_ctx: int = 8192
-
-llm_cfg = LLMConfig()
-
-# --- Initialization ---
-try:
-    llm = ChatOllama(
-        model=llm_cfg.llm_id,
-        temperature=llm_cfg.temperature,
-        validate_model_on_init=True,
-        num_ctx=llm_cfg.num_ctx,
-    )
-except Exception as e:
-    logger.error(f"Error loading LLM '{llm_cfg.llm_id}': {e}")
-
 # --- Schemas ---
-class AgentState(TypedDict):
+class ApplicationState(TypedDict):
     """The state of the agent execution pipeline."""
     db_path: str
-    queue: List[int]
+    queue: list[int]
     current_job_id: Optional[int]
     current_code: Optional[str]
     retrieved_context: str
     generated_docstring: Optional[str]
-    file_docstring_changes: Dict[str, List[Tuple[int, str, int, str]]] # Updated to store (insert_line, docstring, body_start_line, indentation)
+    file_docstring_changes: dict[str, list[tuple[int, str, int, str]]] # Updated to store (insert_line, docstring, body_start_line, indentation)
 
 
 # --- Prompts ---
@@ -69,7 +49,7 @@ Your output should be solely the text that would appear *between* the opening an
 
 # --- Nodes ---
 
-def builder_node(state: AgentState):
+def builder_node(state: ApplicationState):
     logger.info(">>> Executing builder_node...")
     """
     Node A: Builder
@@ -111,7 +91,7 @@ def builder_node(state: AgentState):
     return {"queue": queue}
 
 
-def dispatcher_node(state: AgentState):
+def dispatcher_node(state: ApplicationState):
     logger.info(">>> Executing dispatcher_node...")
     """
     Node B: Dispatcher
@@ -140,7 +120,7 @@ def dispatcher_node(state: AgentState):
     }
 
 
-def retrieval_node(state: AgentState):
+def retrieval_node(state: ApplicationState):
     logger.info("Executing retrieval_node...")
     """
     Node C: Retrieval (SQL-RAG)
@@ -162,7 +142,7 @@ def retrieval_node(state: AgentState):
     return {"retrieved_context": context_str}
 
 
-def generation_node(state: AgentState):
+def generation_node(state: ApplicationState):
     logger.info("Executing generation_node...")
     """
     Node D: Generation
@@ -171,6 +151,13 @@ def generation_node(state: AgentState):
     """
     code = state["current_code"]
     context_str = state["retrieved_context"]
+    
+    # Initialize the LLM with the current settings
+    llm = ChatOllama(
+        model=settings.llm_id,
+        temperature=settings.temperature,
+        num_ctx=settings.num_ctx,
+    )
     
     # Construct messages
     messages = [
@@ -187,7 +174,7 @@ def generation_node(state: AgentState):
     # Attempt to extract content between triple quotes, ignoring code blocks
     # This regex looks for """ (or ''') followed by content, and then the closing """ (or ''')
     # It tries to avoid matching ```python...``` blocks
-    match = re.search(r'(?:"""|\'\'\')(.*?)(?:"""|\'\'\')', raw_response, re.DOTALL)
+    match = re.search(r'(?:\"\"\"|\'\'\')(.*?)(?:\"\"\"|\'\'\')', raw_response, re.DOTALL)
     if match:
         docstring = match.group(1).strip()
     else:
@@ -204,46 +191,7 @@ def generation_node(state: AgentState):
     return {"generated_docstring": docstring}
 
 
-def get_indentation(line: str) -> str:
-    """Extracts the leading whitespace from a line."""
-    match = re.match(r"^(\s*)", line)
-    return match.group(1) if match else ""
-
-def find_docstring_boundaries(lines: List[str], body_start_line: int, func_indentation: str) -> tuple[Optional[int], Optional[int]]:
-    """
-    Finds the start and end line numbers (0-based) of an existing docstring
-    starting at body_start_line.
-    """
-    start_line = None
-    end_line = None
-    
-    # body_start_line is 1-based, convert to 0-based
-    i = body_start_line - 1
-            
-    if i < len(lines):
-        line_content = lines[i] # Do not strip initially to preserve indentation
-        # Check for triple quotes at the expected indentation
-        if line_content.lstrip().startswith('"""') or line_content.lstrip().startswith("'''"):
-            # Ensure the triple quotes are at the expected docstring indentation
-            expected_docstring_indentation = func_indentation + "    "
-            if line_content.startswith(expected_docstring_indentation):
-                start_line = i
-                quote_type = '"""' if line_content.lstrip().startswith('"""') else "'''"
-                
-                # Check for single-line docstring
-                if line_content.count(quote_type) >= 2:
-                    end_line = i
-                else:
-                    # Multi-line docstring, search for closing triple quotes
-                    for j in range(i + 1, len(lines)):
-                        # Look for a line that ends with the quote type and has appropriate indentation
-                        if lines[j].strip().endswith(quote_type) and lines[j].startswith(expected_docstring_indentation):
-                            end_line = j
-                            break
-            
-    return start_line, end_line
-
-def patcher_node(state: AgentState):
+def patcher_node(state: ApplicationState):
     logger.info("Executing patcher_node...")
     """
     Node E: Patcher
@@ -303,7 +251,7 @@ def patcher_node(state: AgentState):
     return {"current_job_id": None}
 
 
-def final_writer_node(state: AgentState):
+def final_writer_node(state: ApplicationState):
     logger.info("Executing final_writer_node...")
     """
     Node F: Final Writer
@@ -342,44 +290,3 @@ def final_writer_node(state: AgentState):
             
     # Clear changes from state after writing
     return {"file_docstring_changes": {}}
-
-# --- Graph Construction ---
-
-def should_continue(state: AgentState):
-    """
-    Conditional edge logic that determines whether to continue processing
-    or trigger the final write.
-    """
-    if state["current_job_id"] is None:
-        return "final_write" # Trigger final write when queue is empty
-    else:
-        return "continue"
-
-workflow = StateGraph(AgentState)
-
-# Add nodes
-workflow.add_node("builder", builder_node)
-workflow.add_node("dispatcher", dispatcher_node)
-workflow.add_node("retriever", retrieval_node)
-workflow.add_node("generator", generation_node)
-workflow.add_node("patcher", patcher_node)
-workflow.add_node("final_writer", final_writer_node) # Add the new node
-
-# Define edges
-workflow.set_entry_point("builder")
-workflow.add_edge("builder", "dispatcher")
-workflow.add_conditional_edges(
-    "dispatcher",
-    should_continue,
-    {
-        "continue": "retriever",
-        "final_write": "final_writer", # New edge to final_writer
-    },
-)
-workflow.add_edge("retriever", "generator")
-workflow.add_edge("generator", "patcher")
-workflow.add_edge("patcher", "dispatcher")
-workflow.add_edge("final_writer", END) # Connect final_writer to END
-
-# Compile the agent
-agent = workflow.compile()

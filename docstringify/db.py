@@ -20,7 +20,7 @@ class CodeChunk(BaseModel):
     line_number = IntegerField()
     body_start_line = IntegerField(null=True)
     docstring = TextField(null=True)
-    calls = TextField(default="[]")  # Store as JSON string
+    calls = TextField(default="[]")  # Store as string, JSON array
 
 
 class CallGraph(BaseModel):

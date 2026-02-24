@@ -4,10 +4,10 @@
 
 ## Features
 
--   **Automated Indexing:** Parses your Python project using `ast` to build a comprehensive call graph and structural model.
--   **Context-Aware Generation:** Uses RAG to retrieve relevant code snippets (dependencies and usages) to provide the LLM with the full context of how a function or class is used.
--   **Intelligent Patching:** Automatically inserts or updates docstrings in your source files while preserving existing formatting and indentation.
--   **LangGraph Orchestration:** Uses a state-of-the-art agentic workflow to manage the generation process.
+- **Automated Indexing:** Parses your Python project using `ast` to build a comprehensive call graph and structural model.
+- **Context-Aware Generation:** Uses RAG to retrieve relevant code snippets (dependencies and usages) to provide the LLM with the full context of how a function or class is used.
+- **Intelligent Patching:** Automatically inserts or updates docstrings in your source files while preserving existing formatting and indentation.
+- **LangGraph Orchestration:** Uses a state-of-the-art agentic workflow to manage the generation process.
 
 ## Workflow
 
@@ -53,9 +53,9 @@ The project uses `uv` for dependency management.
 
 ### Prerequisites
 
--   Python >= 3.12
--   [uv](https://github.com/astral-sh/uv)
--   [Ollama](https://ollama.com/) (running with the `qwen3:4b-instruct` model or your preferred model)
+- Python >= 3.12
+- [uv](https://github.com/astral-sh/uv)
+- [Ollama](https://ollama.com/) (running with the `qwen3:4b-instruct` model or your preferred model)
 
 ### Install as a CLI tool
 
@@ -79,27 +79,26 @@ Simply point `docstringify` to the directory of the Python project you want to d
 docstringify /path/to/your/project
 ```
 
-The tool will create an `autodoc.db` file in the target directory to store the index and then begin generating docstrings.
+### Options
 
-## Evaluation
+-   `--llm-id TEXT`, `--llm TEXT`: The Ollama model ID to use (default: `qwen3:4b-instruct`).
+-   `--temperature FLOAT`: The temperature for LLM generation (default: `0.2`).
 
-The project includes an evaluation suite using `ragas` and `weave` to measure the quality of generated docstrings.
 
-1.  **Authenticate with Google Cloud:**
-    ```bash
-    gcloud auth application-default login
-    ```
+Example with custom model:
 
-2.  **Run Evaluation:**
-    ```bash
-    python evaluate.py
-    ```
+```bash
+docstringify /path/to/your/project --llm-id llama3:8b --temperature 0.5
+```
+
+The tool will create an `docstringify.db` file in the target directory to store the index and then begin generating docstrings.
 
 ## Project Structure
 
--   `docstringify/main.py`: CLI entry point using `typer`.
--   `docstringify/agent.py`: LangGraph workflow and node definitions.
--   `docstringify/db.py`: SQLite database schema and Peewee models.
--   `docstringify/injector.py`: Repository scanning and AST parsing logic.
--   `docstringify/retrievers.py`: SQL-based RAG context retrieval.
--   `docstringify/code_parser.py`: AST visitor for extracting code structure and calls.
+- `docstringify/config.py`: Centralized configuration and settings.
+- `docstringify/main.py`: CLI entry point using `typer`.
+- `docstringify/agent.py`: LangGraph workflow and node definitions.
+- `docstringify/db.py`: SQLite database schema and Peewee models.
+- `docstringify/injector.py`: Repository scanning and AST parsing logic.
+- `docstringify/retrievers.py`: SQL-based RAG context retrieval.
+- `docstringify/code_parser.py`: AST visitor for extracting code structure and calls.
