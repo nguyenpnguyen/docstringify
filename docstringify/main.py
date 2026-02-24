@@ -9,7 +9,7 @@ from docstringify.db import init_db
 from docstringify.config import settings, update_settings
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 

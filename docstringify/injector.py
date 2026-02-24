@@ -7,7 +7,7 @@ from docstringify.code_parser import CodeStructureVisitor, parse_code_structure,
 from docstringify.db import get_or_create_code_chunk, build_call_graph, CodeChunk
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 

@@ -6,7 +6,7 @@ from docstringify.db import CodeChunk, select_code_chunk_by_name, get_dependenci
 
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 

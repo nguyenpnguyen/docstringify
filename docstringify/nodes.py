@@ -19,6 +19,11 @@ from docstringify.injector import load_and_split_repository
 from docstringify.config import settings
 from docstringify.utils import get_indentation, find_docstring_boundaries
 
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
 logger = logging.getLogger(__name__)
 
 # --- Schemas ---
@@ -58,24 +63,24 @@ def builder_node(state: ApplicationState):
     queries the database for undocumented functions and populates the agent's queue.
     """
     db_path = state["db_path"]
-    logger.info(f">>> db_path: {db_path}")
+    logger.info(f"db_path: {db_path}")
     
     # Ensure database is initialized
     init_db(db_path)
     
     # Check if the database has any chunks; if not, populate it
     all_chunks = get_all_code_chunks()
-    logger.info(f">>> Initial chunks count: {len(all_chunks)}")
+    logger.debug(f"Initial chunks count: {len(all_chunks)}")
     
     if not all_chunks:
         # Infer the repository path from the db_path location, assuming it's in the repo root
         repo_path = os.path.dirname(os.path.abspath(db_path))
-        logger.info(f">>> repo_path: {repo_path}")
+        logger.debug(f"repo_path: {repo_path}")
         
-        logger.info(f"Indexing repository at {repo_path}...")
+        logger.debug(f"Indexing repository at {repo_path}...")
         # Load and parse the repository content
         docs = load_and_split_repository(repo_path)
-        logger.info(f">>> Docs found during indexing: {len(docs)}")
+        logger.debug(f"Docs found during indexing: {len(docs)}")
         
         # Insert the parsed documents into the database
         bulk_insert_chunks(docs)
@@ -85,7 +90,7 @@ def builder_node(state: ApplicationState):
 
     # Query for undocumented functions to populate the queue
     undocumented_chunks = get_undocumented_chunks()
-    logger.info(f">>> Undocumented chunks found: {len(undocumented_chunks)}")
+    logger.info(f"Number of undocumented chunks found: {len(undocumented_chunks)}")
     queue = [chunk.id for chunk in undocumented_chunks]
     
     return {"queue": queue}
@@ -100,17 +105,18 @@ def dispatcher_node(state: ApplicationState):
     and updates the agent's state. If the queue is empty, it signals the end.
     """
     queue = state["queue"]
-    logger.info(f">>> Queue size: {len(queue)}")
+    logger.info(f"Queue size: {len(queue)}")
     if not queue:
-        logger.info(">>> Queue is empty, finishing.")
+        logger.info("Queue is empty, finishing.")
         return {"current_job_id": None, "current_code": None}
     
     # Pop the first ID from the queue
     job_id = queue.pop(0)
-    logger.info(f">>> Dispatching job_id: {job_id}")
+    logger.info(f"Dispatching job_id: {job_id}")
     
     # Fetch the code chunk from the database
     code_chunk = select_code_chunk_by_id(job_id)
+    logger.debug(f"Working on chunk: {code_chunk.name} in {code_chunk.path}")
     
     # Update the state
     return {
@@ -129,9 +135,11 @@ def retrieval_node(state: ApplicationState):
     """
     job_id = state["current_job_id"]
     code_chunk = select_code_chunk_by_id(job_id)
+    logger.debug(f">>> Retrieving context for: {code_chunk.name}")
     
     # Retrieve relevant documents (dependencies and usages)
     docs = retrieve_relevant_docs(code_chunk.name, code_chunk.path)
+    logger.debug(f">>> Retrieved {len(docs)} context documents.")
     
     # Format the retrieved context into a string
     context_str = "\n\n".join(
@@ -151,6 +159,11 @@ def generation_node(state: ApplicationState):
     """
     code = state["current_code"]
     context_str = state["retrieved_context"]
+    job_id = state["current_job_id"]
+    code_chunk = select_code_chunk_by_id(job_id)
+    
+    logger.debug(f"Generating docstring for: {code_chunk.name}")
+    logger.debug(f"Context passed to LLM:\n{context_str}")
     
     # Initialize the LLM with the current settings
     llm = ChatOllama(
@@ -174,7 +187,7 @@ def generation_node(state: ApplicationState):
     # Attempt to extract content between triple quotes, ignoring code blocks
     # This regex looks for """ (or ''') followed by content, and then the closing """ (or ''')
     # It tries to avoid matching ```python...``` blocks
-    match = re.search(r'(?:\"\"\"|\'\'\')(.*?)(?:\"\"\"|\'\'\')', raw_response, re.DOTALL)
+    match = re.search(r'(?:"""|\'\'\')(.*?)(?:"""|\'\'\')', raw_response, re.DOTALL)
     if match:
         docstring = match.group(1).strip()
     else:
@@ -204,6 +217,7 @@ def patcher_node(state: ApplicationState):
     
     # Get the code chunk details from the database
     code_chunk = select_code_chunk_by_id(job_id)
+    logger.debug(f"Patching docstring for: {code_chunk.name}")
     
     # Read the source file (locally for calculation, not writing yet)
     with open(code_chunk.path, "r") as f:
@@ -262,6 +276,8 @@ def final_writer_node(state: ApplicationState):
     for file_path, changes in state["file_docstring_changes"].items():
         if not changes:
             continue
+        
+        logger.debug(f"Writing docstring changes to: {file_path}")
 
         with open(file_path, "r") as f:
             lines = f.readlines()
