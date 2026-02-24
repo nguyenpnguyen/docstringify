@@ -9,7 +9,7 @@ from langchain_core.documents import Document
 from pydantic import BaseModel, Field
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
