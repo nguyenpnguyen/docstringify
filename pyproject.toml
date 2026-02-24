@@ -1,6 +1,6 @@
 [project]
 name = "docstringify"
-version = "0.1.3"
+version = "0.1.4"
 description = "Docstringify"
 readme = "README.md"
 authors = [
