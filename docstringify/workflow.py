@@ -29,20 +29,20 @@ def should_continue(state: ApplicationState):
     else:
         return "continue"
 
-workflow = StateGraph(ApplicationState)
+graph = StateGraph(ApplicationState)
 
 # Add nodes
-workflow.add_node("builder", builder_node)
-workflow.add_node("dispatcher", dispatcher_node)
-workflow.add_node("retriever", retrieval_node)
-workflow.add_node("generator", generation_node)
-workflow.add_node("patcher", patcher_node)
-workflow.add_node("final_writer", final_writer_node)
+graph.add_node("builder", builder_node)
+graph.add_node("dispatcher", dispatcher_node)
+graph.add_node("retriever", retrieval_node)
+graph.add_node("generator", generation_node)
+graph.add_node("patcher", patcher_node)
+graph.add_node("final_writer", final_writer_node)
 
 # Define edges
-workflow.set_entry_point("builder")
-workflow.add_edge("builder", "dispatcher")
-workflow.add_conditional_edges(
+graph.set_entry_point("builder")
+graph.add_edge("builder", "dispatcher")
+graph.add_conditional_edges(
     "dispatcher",
     should_continue,
     {
@@ -50,10 +50,10 @@ workflow.add_conditional_edges(
         "final_write": "final_writer",
     },
 )
-workflow.add_edge("retriever", "generator")
-workflow.add_edge("generator", "patcher")
-workflow.add_edge("patcher", "dispatcher")
-workflow.add_edge("final_writer", END)
+graph.add_edge("retriever", "generator")
+graph.add_edge("generator", "patcher")
+graph.add_edge("patcher", "dispatcher")
+graph.add_edge("final_writer", END)
 
 # Compile the agent
-app = workflow.compile()
+workflow = graph.compile()

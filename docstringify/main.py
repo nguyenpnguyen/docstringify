@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from docstringify.app import app
+from docstringify.workflow import workflow 
 from docstringify.nodes import ApplicationState
 from docstringify.db import init_db
 from docstringify.config import settings, update_settings
@@ -15,9 +15,9 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-cli_app = typer.Typer()
+app = typer.Typer()
 
-@cli_app.command()
+@app.command()
 def docstringify(
     project_path: Path = typer.Argument(..., exists=True, file_okay=False, resolve_path=True),
     llm_id: Optional[str] = typer.Option(None, "--llm-id", "--llm", help="The Ollama model ID to use."),
@@ -48,9 +48,9 @@ def docstringify(
     )
     
     logger.info(f"Starting the docstring generation process for {project_path}...")
-    app.invoke(initial_state, config={"recursion_limit": 100})
+    workflow.invoke(initial_state, config={"recursion_limit": 100})
     logger.info("Docstring generation process finished.")
 
 
 if __name__ == "__main__":
-    cli_app()
+    app()

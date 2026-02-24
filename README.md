@@ -81,9 +81,8 @@ docstringify /path/to/your/project
 
 ### Options
 
--   `--llm-id TEXT`, `--llm TEXT`: The Ollama model ID to use (default: `qwen3:4b-instruct`).
--   `--temperature FLOAT`: The temperature for LLM generation (default: `0.2`).
-
+- `--llm-id TEXT`, `--llm TEXT`: The Ollama model ID to use (default: `qwen3:4b-instruct`).
+- `--temperature FLOAT`: The temperature for LLM generation (default: `0.2`).
 
 Example with custom model:
 
@@ -97,8 +96,10 @@ The tool will create an `docstringify.db` file in the target directory to store 
 
 - `docstringify/config.py`: Centralized configuration and settings.
 - `docstringify/main.py`: CLI entry point using `typer`.
-- `docstringify/agent.py`: LangGraph workflow and node definitions.
+- `docstringify/workflow.py`: LangGraph workflow definitions.
+- `docstringify/nodes.py`: Node definitions.
 - `docstringify/db.py`: SQLite database schema and Peewee models.
 - `docstringify/injector.py`: Repository scanning and AST parsing logic.
 - `docstringify/retrievers.py`: SQL-based RAG context retrieval.
 - `docstringify/code_parser.py`: AST visitor for extracting code structure and calls.
+- `docstringify/utils.py`: Utilities.
